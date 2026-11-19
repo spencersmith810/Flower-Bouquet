@@ -16,7 +16,7 @@ const speedValue = document.querySelector('#speed-value');
 const shareStatus = document.querySelector('#share-status');
 const shareLink = document.querySelector('#share-link');
 const shareLabel = document.querySelector('#share-link-label');
-const worker = new Worker('renderer-worker.js?v=20261119d', { type: 'module' });
+const worker = new Worker('renderer-worker.js?v=20261119e', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
@@ -228,7 +228,7 @@ function fitScreen(minimum = 7) {
   const context = canvas.getContext('2d');
   context.font = '16px Menlo, Monaco, Consolas, monospace';
   const cellWidth = context.measureText('M').width / 16;
-  const columns = state.scene === 'bouquet' ? (state.detail === 'detailed' ? 300 : 212) : window.AsciiScenes.width;
+  const columns = state.scene === 'bouquet' ? (state.detail === 'detailed' ? 300 : 212) : window.AsciiScenes.dimensions(state.scene).width;
   zoom = Math.min(18, Math.max(minimum, (screen.clientWidth - 32) / (columns * cellWidth)));
   screen.style.fontSize = `${zoom}px`;
 }

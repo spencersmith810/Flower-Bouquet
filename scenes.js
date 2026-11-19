@@ -1,6 +1,7 @@
 /* Character-grid animations. All scenes return the same ANSI format as bouquet3d.py. */
 (function () {
   const W = 110, H = 38;
+  const dimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 } : { width: W, height: H };
   const palettes = {
     spring: [218, 225, 211, 114], summer: [34, 71, 77, 114],
     autumn: [130, 166, 172, 214], winter: [250, 254, 231, 117],
@@ -9,6 +10,7 @@
   };
 
   function render(scene, options) {
+    const { width: W, height: H } = dimensions(scene);
     const t = options.time || 0;
     const rows = Array.from({ length: H }, () => Array.from({ length: W }, () => [' ', 0]));
     const put = (x, y, char, color = 255) => {
@@ -86,23 +88,90 @@
       text(35, 30, '|              WINTER GLOBE              |', 110);
       text(35, 31, '|________________________________________|', 110);
     } else if (scene === 'aquarium') {
-      const water = options.waterColor === 'teal' ? 44 : options.waterColor === 'purple' ? 141 : 75;
-      line(6, 2, 103, 2, '=', water); line(6, 32, 103, 32, '=', water);
-      line(6, 2, 6, 32, '|', water); line(103, 2, 103, 32, '|', water);
+      const water = options.waterColor === 'teal' ? [23, 30, 37, 44] : options.waterColor === 'purple'
+        ? [54, 60, 97, 141] : [24, 25, 67, 75];
+      const fishColors = options.fishColor === 'coral' ? [203, 209, 214, 216, 215, 209]
+        : options.fishColor === 'cool' ? [75, 81, 117, 141, 111, 159] : [214, 211, 220, 81, 209, 225];
+      const left = 4, right = W - 5, top = 2, floor = H - 8;
+      const tankPut = (x, y, ch, color) => {
+        if (x > left && x < right && y > top && y < floor) put(x, y, ch, color);
+      };
+      const tankText = (x, y, str, color) => [...str].forEach((ch, i) => {
+        if (ch !== ' ') tankPut(x + i, y, ch, color);
+      });
+
+      // Ripples and small drifting particles give the water depth without filling the scene.
+      for (let x = left + 4; x < right - 4; x += 17) {
+        tankText(x + Math.sin(t * .5 + x) * 2, top + 2, '~--~', water[2]);
+      }
+      for (let i = 0; i < 130; i++) {
+        const x = left + 3 + hash(i + 1200) * (right - left - 6);
+        const y = top + 4 + hash(i + 1400) * (floor - top - 7);
+        tankPut(x + Math.sin(t * .3 + i) * .4, y, i % 11 ? '.' : ':', water[i % 2]);
+      }
+
+      // Layered sand, pebbles, and rocks sit behind the plants and fish.
+      for (let x = left + 1; x < right; x++) {
+        const dune = floor - 3 - Math.round(Math.sin(x * .045) * 1.2);
+        for (let y = dune; y < floor; y++) {
+          tankPut(x, y, ['.', ':', ',', '`'][Math.floor(hash(x * 7 + y) * 4)], [101, 137, 144, 180][(x + y) % 4]);
+        }
+      }
+      const rocks = [
+        { x: 15, y: floor - 4, lines: ['     _____', '  .-\'     `-.', ' /__..__..___\\'] },
+        { x: 109, y: floor - 4, lines: ['   ___    ____', ' /   `-./    \\', '/___..__\\____/'] },
+      ];
+      rocks.forEach(rock => rock.lines.forEach((row, i) => tankText(rock.x, rock.y + i, row, 102)));
+      tankText(72, floor - 8, '     .-._.-.', 180);
+      tankText(72, floor - 7, '   _/  _  \\_', 180);
+      tankText(72, floor - 6, '  /   / \\   \\', 137);
+      tankText(72, floor - 5, ' /___/   \\___\\', 137);
+
+      // Individual fronds sway at different rates rather than moving as one block.
       for (let i = 0; i < 18; i++) {
-        const x = 9 + hash(i + 220) * 90, y = 4 + ((hash(i + 221) * 28 - t * (1 + i % 3) + 2800) % 28);
-        put(x, y, i % 3 ? 'o' : '.', water);
+        const root = 10 + i * 8 + Math.round(hash(i + 90) * 3);
+        const height = 7 + Math.floor(hash(i + 91) * 10);
+        const color = [28, 34, 71, 77, 114][i % 5];
+        for (let j = 0; j < height; j++) {
+          const sway = Math.sin(t * .8 + i * 1.7 + j * .28) * j * .09;
+          const x = root + sway, y = floor - 3 - j;
+          tankPut(x, y, j % 3 === 0 ? '|' : j % 2 ? '/' : '\\', color);
+          if (j > 2 && j % 3 === 0) tankPut(x + (j % 2 ? 1 : -1), y, j % 2 ? ')' : '(', color);
+        }
       }
-      for (let i = 0; i < 10; i++) {
-        const x = 12 + i * 9;
-        for (let j = 0; j < 7; j++) put(x + Math.sin(t + i + j) * 2, 31 - j, j % 2 ? '/' : '|', 71);
+      // Coral branches and a small starfish add foreground detail.
+      for (const [x, color] of [[35, 203], [128, 209], [146, 141]]) {
+        for (let j = 0; j < 5; j++) tankPut(x, floor - 4 - j, '|', color);
+        tankText(x - 3, floor - 8, '\\ | /', color);
+        tankText(x - 2, floor - 7, '\\|/', color);
       }
+      tankText(53, floor - 3, ' * ', 214);
+      tankText(53, floor - 2, '*+*', 214);
+
+      // Different silhouettes, directions, and speeds make the fish feel individual.
+      const fishShapes = [
+        ['       .-~~~~-.', '   ___/  _     \\', '><(_____(o)  ~~~ )>', '   \\   `-.___.-\'/', '    `--.___..--\''],
+        ['      _.-~~~-._', '  _.-\'  _     `-._', '<(_____(o)  ///  _)>', '  `-._        _.-\'', '      `-.__.-\''],
+        ['      .-^^^-._', '  ___/  o     `-._', '><___   ))))     _)>', '     \\__    _.-\'', '        `---\''],
+      ];
+      const mirror = str => [...str].reverse().map(ch => ({ '<': '>', '>': '<', '(': ')', ')': '(', '/': '\\', '\\': '/' })[ch] || ch).join('');
       for (let i = 0; i < 6; i++) {
-        const x = 10 + ((t * (3 + i % 3) + i * 19) % 80), y = 7 + i * 3.4 + Math.sin(t + i);
-        const fishColors = options.fishColor === 'coral' ? [203, 209, 214, 216, 215, 209]
-          : options.fishColor === 'cool' ? [75, 81, 117, 141, 111, 159] : [214, 211, 220, 81, 209, 225];
-        text(x, y, i % 2 ? '<°)))><' : '><(((°>', fishColors[i]);
+        const shape = fishShapes[i % fishShapes.length];
+        const shapeWidth = Math.max(...shape.map(row => row.length));
+        const range = right - left + shapeWidth;
+        const motion = (t * (3.2 + i * .43) + i * 27) % range;
+        const x = i % 2 ? right - motion : left - shapeWidth + motion;
+        const y = 7 + (i % 3) * 9 + (i >= 3 ? 3 : 0) + Math.sin(t * .8 + i) * 1.2;
+        shape.forEach((row, j) => tankText(x, y + j, i % 2 ? mirror(row.padEnd(shapeWidth)) : row, fishColors[i]));
       }
+      for (let i = 0; i < 38; i++) {
+        const x = 10 + hash(i + 220) * (W - 20) + Math.sin(t * 1.1 + i) * 1.5;
+        const y = top + 3 + ((hash(i + 221) * (floor - top - 5) - t * (1.5 + i % 3) + 10000) % (floor - top - 5));
+        tankPut(x, y, i % 5 === 0 ? 'O' : i % 2 ? 'o' : '.', water[3]);
+      }
+      line(left, top, right, top, '=', water[3]); line(left, floor, right, floor, '=', water[3]);
+      line(left, top, left, floor, '|', water[3]); line(right, top, right, floor, '|', water[3]);
+      text(left + 2, top, '[ AQUARIUM ]', water[3]);
     } else if (scene === 'space') {
       stars(120, 0, 32);
       const cx = 55, cy = 18, rx = 20, ry = 10;
@@ -173,5 +242,5 @@
       return out;
     }).join('\n') + '\x1b[0m';
   }
-  window.AsciiScenes = { render, width: W, height: H };
+  window.AsciiScenes = { render, width: W, height: H, dimensions };
 })();

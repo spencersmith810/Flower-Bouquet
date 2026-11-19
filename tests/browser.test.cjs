@@ -109,13 +109,25 @@ test('all eight scenes produce distinct animated character grids', () => {
   const names = ['tree', 'snowglobe', 'aquarium', 'space', 'ocean', 'rain', 'fireworks', 'nightsky'];
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
-  for (const frame of frames) {
-    assert.equal(frame.split('\n').length, 38);
-    assert.match(frame, /Hello/);
+  for (let i = 0; i < frames.length; i++) {
+    assert.equal(frames[i].split('\n').length, names[i] === 'aquarium' ? 52 : 38);
+    assert.match(frames[i], /Hello/);
   }
   for (const scene of names) {
     assert.notEqual(scenes.render(scene, { time: 2 }), scenes.render(scene, { time: 3 }), scene);
   }
+});
+
+test('aquarium uses a larger grid with moving, detailed fish', () => {
+  const { scenes } = setup();
+  const frame = scenes.render('aquarium', { time: 3, waterColor: 'teal', fishColor: 'coral' });
+  const plain = frame.replace(/\x1b\[[0-9;]*[mH]/g, '');
+  const lines = plain.split('\n');
+  assert.equal(lines.length, 52);
+  assert.equal(lines[0].length, 164);
+  assert.match(plain, /AQUARIUM/);
+  assert.match(plain, /\(o\)|[()<>]o[()<>]/);
+  assert.notEqual(frame, scenes.render('aquarium', { time: 4, waterColor: 'teal', fishColor: 'coral' }));
 });
 
 test('scene choice and options round-trip through sharing', async () => {
