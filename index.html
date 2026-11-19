@@ -10,31 +10,31 @@
 <body>
   <main class="shell">
     <section class="intro">
-      <p class="eyebrow">A little garden, made for you</p>
-      <h1>Flower <em>Bouquet</em></h1>
-      <p class="lede">Choose a mood, write a message, and let the bouquet bloom.</p>
+      <p class="eyebrow">ASCII FLOWER BOUQUET // WEB EDITION</p>
+      <h1>ASCII FLOWER<br><em>BOUQUET</em></h1>
+      <p class="lede">A browser-based terminal rendering of a spinning 3D bouquet.</p>
       <div class="message-row">
-        <label for="message">Your message</label>
-        <input id="message" maxlength="42" value="for you ♥" autocomplete="off">
+        <label for="message">MESSAGE</label>
+        <input id="message" maxlength="42" value="for you ♥" autocomplete="off" spellcheck="false">
       </div>
     </section>
 
     <section class="terminal-window" aria-label="Animated flower bouquet terminal">
-      <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">bouquet3d.py — terminal</span></div>
+      <div class="terminal-bar"><span class="terminal-path">~/flower-bouquet</span><span class="terminal-title">python3 bouquet3d.py</span><span class="terminal-state">RUNNING</span></div>
       <pre id="screen" aria-live="off"></pre>
     </section>
 
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
-        <button id="pause" type="button">Pause</button>
-        <button id="slower" type="button">− Speed</button>
-        <button id="faster" type="button">+ Speed</button>
-        <button id="colors" type="button">Colors</button>
-        <button id="hearts" type="button">More hearts</button>
-        <button id="surprise" type="button" class="accent">Next bouquet</button>
+        <button id="pause" type="button">PAUSE</button>
+        <button id="slower" type="button">- SPEED</button>
+        <button id="faster" type="button">+ SPEED</button>
+        <button id="colors" type="button">CYCLE COLORS</button>
+        <button id="hearts" type="button">ADD HEARTS</button>
+        <button id="surprise" type="button" class="accent">NEXT THEME</button>
       </div>
-      <p class="keyboard-hint">Tip: press <kbd>Space</kbd> to pause and <kbd>←</kbd> <kbd>→</kbd> to change bouquets.</p>
+      <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed <kbd>C</kbd> colors <kbd>H</kbd> hearts <kbd>←</kbd>/<kbd>→</kbd> themes</p>
     </section>
   </main>
   <script src="app.js"></script>

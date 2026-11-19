@@ -8,13 +8,13 @@ const heartsButton = document.querySelector('#hearts');
 const nextButton = document.querySelector('#surprise');
 
 const themes = [
-  { name: 'Original', flowers: ['#f4a6c5', '#ff759f', '#ffd36d'], center: '#e6b85c', green: '#5da66e', paper: '#e8ded1', ribbon: '#f19aba' },
-  { name: 'Romantic', flowers: ['#f6abc7', '#d96592', '#fff0f5'], center: '#e8ad55', green: '#5e9b72', paper: '#f2e7de', ribbon: '#e985ad' },
-  { name: 'Sunset', flowers: ['#ff9b50', '#f7c65e', '#e85c54'], center: '#632f32', green: '#648a62', paper: '#e9d8c8', ribbon: '#e87550' },
-  { name: 'Lavender Garden', flowers: ['#c5a9ff', '#8f6edc', '#f7eaff'], center: '#f4cf72', green: '#669b78', paper: '#ddd8e9', ribbon: '#ad8eeb' },
-  { name: 'Spring', flowers: ['#fff6d6', '#ff9ec2', '#ffd264'], center: '#d99134', green: '#5ba472', paper: '#e4e6d7', ribbon: '#7dc99a' },
-  { name: 'Midnight', flowers: ['#8cb6ff', '#bd8bff', '#f2d8ff'], center: '#78d5d1', green: '#538b81', paper: '#c4c8dc', ribbon: '#8e9ef7' },
-  { name: 'Monochrome', flowers: ['#eef3f5', '#aab5bc', '#ffffff'], center: '#7d8b94', green: '#71877d', paper: '#d9dde0', ribbon: '#aebcc5' },
+  { name: 'Original', flowers: ['#d96c8a', '#e8a94b', '#d7e26d'], center: '#f0c15b', green: '#71b37c', paper: '#a8b2a7', ribbon: '#d96c8a' },
+  { name: 'Ember', flowers: ['#f0784b', '#e4b84f', '#c95050'], center: '#6f3030', green: '#78936b', paper: '#9a9b8e', ribbon: '#e0784b' },
+  { name: 'Violet', flowers: ['#a994e8', '#776fc4', '#c9c2e8'], center: '#d4b85c', green: '#6c9d78', paper: '#9ca2b2', ribbon: '#8f83d0' },
+  { name: 'Garden', flowers: ['#e2e8d2', '#d46d8d', '#e0b94f'], center: '#a86c35', green: '#63a475', paper: '#a8b0a0', ribbon: '#73b28b' },
+  { name: 'Midnight', flowers: ['#7399e5', '#9e7ad4', '#d4c8e8'], center: '#69c2b6', green: '#4f8d82', paper: '#8791a3', ribbon: '#7187d4' },
+  { name: 'Monochrome', flowers: ['#d6dedf', '#8e9aa0', '#f0f3ef'], center: '#7a868a', green: '#71877d', paper: '#9ba4a4', ribbon: '#aab6b9' },
+  { name: 'Amber', flowers: ['#e4a64a', '#d77b47', '#f0cf70'], center: '#653d29', green: '#6c9569', paper: '#9d9b89', ribbon: '#d49242' },
 ];
 
 const presets = [[10, 2], [9, 4], [8, 3], [12, 2], [14, 4], [7, 2], [11, 3]];
