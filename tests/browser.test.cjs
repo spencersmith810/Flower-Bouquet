@@ -46,9 +46,11 @@ function setup(search = '') {
   };
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const scenesSource = fs.readFileSync(path.join(__dirname, '..', 'scenes.js'), 'utf8');
+  const earthSource = fs.readFileSync(path.join(__dirname, '..', 'earth-mask.js'), 'utf8');
+  vm.runInNewContext(earthSource, sandbox);
   vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
-  return { elements, worker, timers, groups, scenes: window.AsciiScenes };
+  return { elements, worker, timers, groups, scenes: window.AsciiScenes, land: window.EARTH_LAND_MASK };
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
@@ -104,17 +106,34 @@ test('choosing a flower style and detail level reaches the renderer', () => {
   assert.equal(worker.messages.at(-1).detail, 'detailed');
 });
 
-test('all eight scenes produce distinct animated character grids', () => {
+test('all scenes produce distinct animated character grids', () => {
   const { scenes } = setup();
-  const names = ['tree', 'snowglobe', 'aquarium', 'space', 'ocean', 'rain', 'fireworks', 'nightsky'];
+  const names = ['tree', 'snowglobe', 'aquarium', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'];
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
   for (let i = 0; i < frames.length; i++) {
-    assert.equal(frames[i].split('\n').length, names[i] === 'aquarium' ? 52 : 38);
+    assert.equal(frames[i].split('\n').length, scenes.dimensions(names[i]).height);
     assert.match(frames[i], /Hello/);
   }
   for (const scene of names) {
     assert.notEqual(scenes.render(scene, { time: 2 }), scenes.render(scene, { time: 3 }), scene);
+  }
+});
+
+test('Earth rotates mapped land and the solar system identifies its planets', () => {
+  const { scenes, land } = setup();
+  const cell = (lat, lon) => land[Math.floor((90 - lat) / 2)][Math.floor((lon + 180) / 2)];
+  assert.equal(cell(39, -99), '1'); // North America
+  assert.equal(cell(23, 13), '1'); // Africa
+  assert.equal(cell(-25, 133), '1'); // Australia
+  assert.equal(cell(0, -145), '0'); // Pacific Ocean
+  const earth = scenes.render('space', { time: 0 });
+  assert.match(earth, /EARTH/);
+  assert.match(earth, /%/);
+  assert.notEqual(earth, scenes.render('space', { time: 8 }));
+  const solar = scenes.render('solar', { time: 2 });
+  for (const planet of ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune']) {
+    assert.match(solar, new RegExp(planet));
   }
 });
 
@@ -144,6 +163,13 @@ test('scene choice and options round-trip through sharing', async () => {
   assert.equal(url.searchParams.get('fireworks'), 'warm');
 });
 
+test('solar system can be opened and shared directly', async () => {
+  const { elements } = setup('?scene=solar');
+  assert.equal(elements['#scene'].value, 'solar');
+  await elements['#share'].click();
+  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'solar');
+});
+
 test('scene controls change the generated artwork', () => {
   const { scenes } = setup();
   assert.notEqual(scenes.render('tree', { time: 2, season: 'spring' }),
@@ -156,6 +182,14 @@ test('scene controls change the generated artwork', () => {
                   scenes.render('ocean', { time: 2, oceanTime: 'night' }));
   assert.notEqual(scenes.render('fireworks', { time: 2, fireworkColor: 'warm' }),
                   scenes.render('fireworks', { time: 2, fireworkColor: 'cool' }));
+});
+
+test('New York fireworks default to a rainbow over the skyline', () => {
+  const { scenes } = setup();
+  const frame = scenes.render('fireworks', { time: 3 });
+  assert.match(frame, /NEW YORK CITY/);
+  const colors = new Set([...frame.matchAll(/\x1b\[38;5;(\d+)m/g)].map(match => Number(match[1])));
+  assert.ok([196, 208, 226, 46, 45, 141, 213].filter(color => colors.has(color)).length >= 4);
 });
 
 test('snow globe shake resumes a paused animation', () => {

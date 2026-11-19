@@ -1,7 +1,9 @@
 /* Character-grid animations. All scenes return the same ANSI format as bouquet3d.py. */
 (function () {
   const W = 110, H = 38;
-  const dimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 } : { width: W, height: H };
+  const dimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 }
+    : ['tree', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
+      ? { width: 150, height: 50 } : { width: W, height: H };
   const palettes = {
     spring: [218, 225, 211, 114], summer: [34, 71, 77, 114],
     autumn: [130, 166, 172, 214], winter: [250, 254, 231, 117],
@@ -33,14 +35,62 @@
       text(x, y, '  _..._ ', 230); text(x, y + 1, ' /     )', 230);
       text(x, y + 2, '|     ( ', 230); text(x, y + 3, ' \\_____)', 230);
     };
-    const skyline = (y, color = 244) => {
-      for (let i = 0; i < 14; i++) {
-        const x = i * 8, h = 2 + Math.floor(hash(i + 150) * 6);
-        line(x, y, x, y - h, '|', color); line(x, y - h, x + 6, y - h, '_', color);
-        line(x + 6, y - h, x + 6, y, '|', color);
-        for (let wy = y - h + 2; wy < y; wy += 2) for (let wx = x + 2; wx < x + 6; wx += 2) put(wx, wy, '.', 221);
+    const mountains = (base, color = 67, highlight = 109) => {
+      // Two layered ridgelines give the sky a landscape instead of an empty horizon.
+      const peaks = [[0, base], [18, base - 10], [29, base - 3], [51, base - 16],
+        [66, base - 5], [83, base - 13], [102, base - 3], [123, base - 14], [149, base]];
+      for (let i = 0; i < peaks.length - 1; i++) {
+        const [x1, y1] = peaks[i], [x2, y2] = peaks[i + 1];
+        line(x1, y1, x2, y2, x2 > x1 && y2 < y1 ? '/' : '\\', color);
       }
-      line(0, y + 1, W - 1, y + 1, '_', color);
+      for (const [x, y] of [peaks[1], peaks[3], peaks[5], peaks[7]]) {
+        text(x - 2, y + 1, '/\\', highlight);
+        text(x - 3, y + 2, '/  \\', highlight);
+      }
+      for (let i = 0; i < 22; i++) {
+        const x = hash(i + 1600) * W;
+        put(x, base - hash(i + 1700) * 3, i % 2 ? '^' : '.', color);
+      }
+    };
+    const newYorkSkyline = base => {
+      // Stylized Manhattan landmarks: One World Trade, Empire State, and Chrysler.
+      const buildings = [
+        [0, 9, 7], [10, 8, 10], [19, 9, 8], [29, 10, 21], [40, 8, 9],
+        [49, 11, 13], [61, 9, 10], [71, 10, 19], [82, 7, 8], [90, 9, 16],
+        [100, 8, 11], [109, 10, 9], [120, 8, 12], [129, 10, 7], [140, 10, 8],
+      ];
+      buildings.forEach(([x, width, height], index) => {
+        for (let y = base - height; y <= base; y++) {
+          for (let col = x; col < x + width; col++) put(col, y, ' ', 0);
+        }
+        line(x, base, x, base - height, '|', 244);
+        line(x, base - height, x + width - 1, base - height, '_', 244);
+        line(x + width - 1, base - height, x + width - 1, base, '|', 244);
+        for (let y = base - height + 2; y < base; y += 2) {
+          for (let col = x + 2; col < x + width - 1; col += 3) {
+            if (hash(index * 83 + y * 3 + col) > .28) put(col, y, '.', 221);
+          }
+        }
+      });
+      // Spires and stepped crowns make the landmarks identifiable at character scale.
+      line(34, base - 21, 34, base - 27, '|', 250);
+      text(72, base - 20, ' /==\\ ', 250); line(76, base - 20, 76, base - 25, '|', 250);
+      text(91, base - 17, ' /\\_/\\ ', 250); text(92, base - 19, '/__^__\\', 250);
+      line(95, base - 19, 95, base - 23, '|', 250);
+      text(8, base - 9, '  *', 230); text(8, base - 8, '  | /\\', 115);
+      text(8, base - 7, '  |(oo)', 115); text(8, base - 6, '  |/|\\', 115);
+      text(8, base - 5, '  / |  \\', 115); text(8, base - 4, '    |', 115);
+      text(8, base - 3, '   / \\', 115); text(8, base - 2, '  /___\\', 115);
+      line(113, base - 5, 113, base, '|', 250);
+      line(139, base - 5, 139, base, '|', 250);
+      line(113, base - 5, 126, base - 1, '\\', 250);
+      line(126, base - 1, 139, base - 5, '/', 250);
+      line(0, base + 1, W - 1, base + 1, '_', 244);
+      // East River reflections shimmer below the buildings.
+      for (let i = 0; i < 35; i++) {
+        const x = hash(i + 2100) * W, y = base + 2 + i % 3;
+        put(x + Math.sin(t + i) * 1.5, y, i % 4 ? '-' : '~', i % 3 ? 67 : 180);
+      }
     };
     const tree = (cx, ground, scale, season) => {
       const p = palettes[season] || palettes.spring;
@@ -71,11 +121,24 @@
     const season = ['spring', 'summer', 'autumn', 'winter'].includes(options.season) ? options.season : 'spring';
 
     if (scene === 'tree') {
-      stars(45, 0, 18); line(0, 32, W - 1, 32, '_', season === 'winter' ? 255 : 71);
-      tree(55, 31, 1, season);
-      if (season === 'winter') snow(70);
-      else for (let i = 0; i < 12; i++) put(30 + hash(i + 200) * 50, 23 + (hash(i + 201) * 9 + t * .5) % 9, '.', palettes[season][i % 4]);
-      text(47, 2, season.toUpperCase() + ' TREE', 250);
+      stars(35, 0, 20);
+      mountains(36, season === 'winter' ? 110 : 60, season === 'winter' ? 255 : 109);
+      line(0, 41, W - 1, 41, '_', season === 'winter' ? 255 : 71);
+      for (let i = 0; i < 55; i++) {
+        const x = hash(i + 2600) * W, y = 38 + hash(i + 2700) * 4;
+        put(x, y, season === 'winter' ? '.' : i % 3 ? ',' : 'v', season === 'winter' ? 255 : 71);
+      }
+      for (let y = 9; y < 26; y++) for (let x = 50; x <= 100; x++) {
+        if (((x - 75) / 25) ** 2 + ((y - 17) / 8) ** 2 <= 1) put(x, y, ' ', 0);
+      }
+      tree(Math.floor(W / 2), 40, 1.35, season);
+      if (season === 'winter') snow(110);
+      else for (let i = 0; i < 28; i++) {
+        const x = 40 + hash(i + 200) * 70 + Math.sin(t + i) * 2;
+        const y = 22 + ((hash(i + 201) * 18 + t * .8) % 18);
+        put(x, y, season === 'spring' ? '*' : '.', palettes[season][i % 4]);
+      }
+      text(4, 3, season.toUpperCase() + ' / THE VALLEY', 250);
     } else if (scene === 'snowglobe') {
       stars(25, 0, 30);
       for (let i = 0; i < 340; i++) {
@@ -173,46 +236,108 @@
       line(left, top, left, floor, '|', water[3]); line(right, top, right, floor, '|', water[3]);
       text(left + 2, top, '[ AQUARIUM ]', water[3]);
     } else if (scene === 'space') {
-      stars(120, 0, 32);
-      const cx = 55, cy = 18, rx = 20, ry = 10;
+      stars(150, 0, 44);
+      const cx = 75, cy = 24, rx = 38, ry = 19;
+      const land = window.EARTH_LAND_MASK;
+      // Orthographic projection: each visible cell maps back to longitude and latitude.
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
-        const d = (x / rx) ** 2 + (y / ry) ** 2;
+        const nx = x / rx, ny = y / ry, d = nx * nx + ny * ny;
         if (d <= 1) {
-          const terrain = Math.sin(x * .35 + t * .7) + Math.cos(y * .9 + x * .16);
-          put(cx + x, cy + y, d > .88 ? '.' : terrain > .5 ? '%' : terrain > -.4 ? '+' : ':', terrain > .5 ? 114 : 75);
+          const z = Math.sqrt(Math.max(0, 1 - d));
+          const latitude = Math.asin(-ny);
+          const longitude = Math.atan2(nx, z) - Math.PI / 2 + t * .18;
+          const wrapped = ((longitude + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+          const col = Math.min(179, Math.floor(wrapped / (2 * Math.PI) * 180));
+          const row = Math.min(89, Math.max(0, Math.floor((Math.PI / 2 - latitude) / Math.PI * 90)));
+          const isLand = land && land[row][col] === '1';
+          const polar = Math.abs(latitude) > 1.33;
+          const ch = d > .96 ? '.' : isLand ? (d > .72 ? '*' : '%') : (d > .8 ? ':' : '+');
+          const color = polar ? 255 : isLand ? (d > .65 ? 71 : 114) : (d > .7 ? 24 : 75);
+          put(cx + x, cy + y, ch, color);
         }
       }
-      for (let i = 0; i < 80; i++) { const a = i * Math.PI * 2 / 80; put(cx + 29 * Math.cos(a), cy + 6 * Math.sin(a), '.', 244); }
-      const a = t * .45; put(cx + 29 * Math.cos(a), cy + 6 * Math.sin(a), 'o', 231);
-      const b = -t * .27 + 2; put(cx + 33 * Math.cos(b), cy + 8 * Math.sin(b), '*', 250);
-      text(Math.floor((t * 5) % 130) - 15, 5, '<===>', 220);
+      const a = t * .25 + 1.2;
+      text(cx + 55 * Math.cos(a), cy + 20 * Math.sin(a), '(o)', 250);
+      text(Math.floor((t * 4) % 180) - 20, 5, '<===>', 220);
+      text(4, 3, 'EARTH / ROTATING GLOBE', 250);
+    } else if (scene === 'solar') {
+      stars(150, 0, 44);
+      const cx = 74, cy = 24;
+      // Orbit radii and speeds are stylized for readability, not astronomical scale.
+      const planets = [
+        ['Mercury', 10, 3, 1.55, 250, '.'], ['Venus', 16, 5, 1.15, 222, 'o'],
+        ['Earth', 22, 7, .85, 81, 'O'], ['Mars', 29, 9, .64, 203, 'o'],
+        ['Jupiter', 37, 11, .42, 215, '@'], ['Saturn', 45, 13, .31, 229, 'O'],
+        ['Uranus', 54, 16, .22, 117, 'o'], ['Neptune', 65, 19, .16, 75, 'o'],
+      ];
+      for (const [, rx, ry] of planets) for (let i = 0; i < 100; i++) {
+        const a = i * Math.PI * 2 / 100;
+        if (i % 3 === 0) put(cx + rx * Math.cos(a), cy + ry * Math.sin(a), '.', 238);
+      }
+      text(cx - 3, cy - 1, ' \ | /', 214);
+      text(cx - 3, cy, '-- @ --', 226);
+      text(cx - 3, cy + 1, ' / | \\', 214);
+      planets.forEach(([name, rx, ry, speed, color, char], i) => {
+        const a = t * speed * .16 + i * 1.7;
+        const x = Math.round(cx + rx * Math.cos(a)), y = Math.round(cy + ry * Math.sin(a));
+        put(x, y, char, color);
+        if (name === 'Saturn') { put(x - 1, y, '-', color); put(x + 1, y, '-', color); }
+      });
+      text(3, 2, 'SOLAR SYSTEM / ORBITS NOT TO SCALE', 250);
+      text(3, 46, 'Mercury  Venus  Earth  Mars  Jupiter  Saturn  Uranus  Neptune', 250);
     } else if (scene === 'ocean') {
-      stars(options.oceanTime === 'night' ? 70 : 12, 0, 18);
-      if (options.oceanTime === 'night') moon(82, 4);
-      else { text(82, 5, ' \ | / ', 220); text(82, 6, '-- @ --', 214); text(82, 7, ' / | \\', 220); }
-      for (let y = 21; y < 33; y++) for (let x = 0; x < W; x += 3) put(x + Math.sin(t * 1.2 + y) * 2, y, y % 3 ? '~' : '-', y % 2 ? 74 : 81);
-      text(14, 10, '  /\\  ', 255); text(14, 11, ' /__\\ ', 255); text(14, 12, ' |**| ', 220);
-      for (let y = 13; y <= 22; y++) text(14, y, y % 3 ? ' |  | ' : ' |==| ', 255);
-      text(12, 23, '__|__|__', 244);
-      const bx = 58 + Math.sin(t * .5) * 8, by = 21 + Math.sin(t) * .5;
-      line(bx, by - 9, bx, by, '|', 231); line(bx + 1, by - 8, bx + 10, by - 1, '/', 230);
-      text(bx - 9, by, '\\__________________/', 180); text(bx - 7, by + 1, '\\________________/', 180);
+      const night = options.oceanTime === 'night';
+      stars(night ? 100 : 10, 0, 25);
+      if (night) moon(125, 4);
+      else {
+        text(125, 7, '   \ | /', 220); text(125, 8, ' --  @  --', 214); text(125, 9, '   / | \\', 220);
+      }
+      for (let y = 27; y < 45; y++) for (let x = 0; x < W; x += 3) {
+        put(x + Math.sin(t * 1.2 + y * .7) * 2, y, y % 3 ? '~' : '-', y % 2 ? 74 : 81);
+      }
+      // A lighthouse, sailboat, and moving animals create a complete coastal scene.
+      text(12, 11, '     /\\', 255); text(12, 12, '    /__\\', 255);
+      text(12, 13, '   | *  |', 220); text(12, 14, '   |____|', 255);
+      for (let y = 15; y <= 29; y++) text(12, y, y % 4 ? '    |  |' : '    |==|', 255);
+      text(10, 30, '___/____\\___', 244);
+      const bx = 62 + Math.sin(t * .4) * 5, by = 27 + Math.sin(t * .8) * .5;
+      line(bx, by - 12, bx, by, '|', 231); line(bx + 1, by - 11, bx + 15, by - 2, '/', 230);
+      text(bx - 11, by, '\\________________________/', 180); text(bx - 8, by + 1, '\\____________________/', 180);
+      const jump = t % 11;
+      if (jump < 5) {
+        const dx = 101 + jump * 6, dy = 26 - Math.sin(jump / 5 * Math.PI) * 8;
+        text(dx, dy, '  __', 117); text(dx, dy + 1, ' /o `-.__', 117);
+        text(dx, dy + 2, '<__      )~', 117); text(dx, dy + 3, '   `----\'', 117);
+      }
+      const wx = 92 + Math.sin(t * .25) * 5;
+      for (let y = 37; y <= 42; y++) for (let x = Math.round(wx); x < wx + 23; x++) put(x, y, ' ', 0);
+      text(wx, 37, '        .', 117); text(wx, 38, '      . | .', 117);
+      text(wx, 39, '   ___\\|/___', 117); text(wx, 40, ' _/  o       `-.__', 117);
+      text(wx, 41, '<_                _)>', 117); text(wx, 42, '  `--._________.-\'', 117);
     } else if (scene === 'rain') {
-      stars(15, 0, 10); skyline(28, 244);
-      for (let i = 0; i < 110; i++) {
+      stars(15, 0, 12);
+      mountains(36, 67, 109);
+      for (let i = 0; i < 20; i++) {
+        const x = 2 + i * 8, h = 3 + Math.floor(hash(i + 3000) * 5);
+        for (let y = 0; y < h; y++) text(x - y, 40 - h + y, '/'.repeat(y) + '|' + '\\'.repeat(y), 28);
+        put(x, 41, '|', 137);
+      }
+      for (let i = 0; i < 190; i++) {
         const x = (hash(i + 500) * W + t * 3 + W) % W;
-        const y = (hash(i + 501) * 31 + t * 9) % 32;
+        const y = (hash(i + 501) * 43 + t * 9) % 43;
         put(x, y, '/', 67);
       }
-      if (Math.sin(t * .23) > .985) { text(71, 3, '  /', 231); text(71, 4, ' /_', 231); text(71, 5, '  /', 231); }
-      line(2, 1, W - 3, 1, '=', 109); line(2, 33, W - 3, 33, '=', 109);
-      line(2, 1, 2, 33, '|', 109); line(W - 3, 1, W - 3, 33, '|', 109);
+      if (Math.sin(t * .23) > .985) {
+        text(105, 3, '    /', 231); text(105, 4, '   /_', 231); text(105, 5, '    /', 231); text(105, 6, '   /', 231);
+      }
+      line(0, 42, W - 1, 42, '_', 67);
+      text(4, 3, 'MOUNTAIN RAINSTORM', 250);
     } else if (scene === 'fireworks') {
-      stars(70, 0, 26); skyline(31, 245);
+      stars(90, 0, 30);
       const colors = palettes[options.fireworkColor] || palettes.rainbow;
       for (let b = 0; b < 6; b++) {
-        const phase = (t + b * 1.7) % 8, x = 15 + hash(b + 700) * 80, y = 5 + hash(b + 701) * 11;
-        if (phase < 1.5) { put(x, 30 - phase / 1.5 * (30 - y), '|', 229); }
+        const phase = (t + b * 1.7) % 8, x = 12 + hash(b + 700) * (W - 24), y = 4 + hash(b + 701) * 12;
+        if (phase < 1.5) { put(x, 40 - phase / 1.5 * (40 - y), '|', 229); }
         else if (phase < 5) {
           const radius = (phase - 1.5) * 3.5;
           for (let i = 0; i < 36; i++) {
@@ -221,13 +346,20 @@
           }
         }
       }
+      newYorkSkyline(40);
+      text(4, 46, 'NEW YORK CITY / RAINBOW FIREWORKS', 250);
     } else if (scene === 'nightsky') {
-      stars(170, 0, 32); moon(81, 4);
-      text(12 + Math.round(Math.sin(t * .12) * 8), 8, '    .--.     .--. ', 246);
-      text(12 + Math.round(Math.sin(t * .12) * 8), 9, ' .-(    )---(    )-.', 246);
+      stars(190, 0, 33); moon(122, 5);
+      mountains(40, 60, 110);
+      for (let i = 0; i < 18; i++) {
+        const x = i * 9 + 2, h = 2 + Math.floor(hash(i + 3500) * 5);
+        for (let y = 0; y < h; y++) text(x - y, 44 - h + y, '/'.repeat(y) + '|' + '\\'.repeat(y), 29);
+      }
       const phase = t % 9;
-      if (phase < 1.8) text(8 + phase * 28, 4 + phase * 6, '---*', 231);
-      line(0, 33, W - 1, 33, '_', 239);
+      if (phase < 1.8) text(8 + phase * 38, 4 + phase * 6, '---*', 231);
+      line(0, 44, W - 1, 44, '_', 239);
+      line(4, 3, 24, 3, ' ', 0);
+      text(4, 3, 'NIGHT SKY / MOUNTAINS', 250);
     }
 
     const message = Array.from(options.message || '');

@@ -16,13 +16,13 @@ const speedValue = document.querySelector('#speed-value');
 const shareStatus = document.querySelector('#share-status');
 const shareLink = document.querySelector('#share-link');
 const shareLabel = document.querySelector('#share-link-label');
-const worker = new Worker('renderer-worker.js?v=20261119e', { type: 'module' });
+const worker = new Worker('renderer-worker.js?v=20261119f', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
 const sceneNames = { bouquet: 'Flower bouquet', tree: 'Seasonal tree', snowglobe: 'Snow globe',
-  aquarium: 'Aquarium', space: 'Space', ocean: 'Ocean', rain: 'Rainy window',
-  fireworks: 'Fireworks', nightsky: 'Night sky' };
+  aquarium: 'Aquarium', space: 'Earth from space', solar: 'Solar system', ocean: 'Ocean', rain: 'Mountain rainstorm',
+  fireworks: 'New York fireworks', nightsky: 'Mountain night sky' };
 const params = new URLSearchParams(window.location.search);
 function option(key, choices, fallback) {
   const value = params.get(key);
