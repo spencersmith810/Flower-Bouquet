@@ -36,17 +36,18 @@ h1 em { color: var(--accent); font-weight: 400; }
 input { border: 1px solid var(--line); border-radius: 999px; outline: none; color: var(--ink); background: rgba(255, 255, 255, .07); font: inherit; }
 .message-row input { width: 100%; padding: 12px 16px; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-.bouquet-card { position: relative; overflow: hidden; min-height: 560px; border: 1px solid var(--line); border-radius: 28px; background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.015)); box-shadow: 0 24px 80px rgba(0,0,0,.32); }
-canvas { position: relative; z-index: 1; display: block; width: 100%; height: 560px; }
-.card-glow { position: absolute; top: 50%; left: 50%; width: 54%; height: 55%; transform: translate(-50%, -50%); border-radius: 50%; background: var(--accent); filter: blur(100px); opacity: .13; }
+.terminal-window { overflow: hidden; border: 1px solid #3f3f46; border-radius: 13px; background: #090a0c; box-shadow: 0 24px 80px rgba(0,0,0,.48), 0 0 0 7px rgba(255,255,255,.025); }
+.terminal-bar { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-bottom: 1px solid #292a30; color: #8f929c; background: #17181c; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.dot { width: 11px; height: 11px; border-radius: 50%; }
+.dot.red { background: #ff5f57; }.dot.yellow { background: #febc2e; }.dot.green { background: #28c840; }
+.terminal-title { flex: 1; margin-left: 5px; text-align: center; }
+#screen { min-height: 560px; margin: 0; padding: 24px 26px; overflow: hidden; color: #d7dbe2; background: #090a0c; font: 14px/1.16 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .01em; white-space: pre; text-shadow: 0 0 8px rgba(255,255,255,.08); }
 .controls { display: grid; gap: 17px; padding: 22px 4px 0; }
 .theme-list { display: flex; flex-wrap: wrap; gap: 8px; }
 button { border: 1px solid var(--line); border-radius: 999px; padding: 10px 15px; color: var(--muted); background: rgba(255,255,255,.055); cursor: pointer; font: inherit; transition: .2s ease; }
 button:hover, button:focus-visible { border-color: var(--accent); color: var(--ink); transform: translateY(-2px); }
 button.active, button.accent { border-color: transparent; color: #241923; background: var(--accent); font-weight: 700; }
 .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
-.range-label { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: .9rem; }
-input[type="range"] { accent-color: var(--accent); }
 .keyboard-hint { margin: 0; color: #8f8790; font-size: .8rem; }
 kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; padding: 2px 6px; color: var(--ink); background: rgba(255,255,255,.08); }
 
@@ -55,5 +56,6 @@ kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5p
   .intro { display: block; }
   .lede { margin-top: 22px; }
   .message-row { margin-top: 20px; }
-  .bouquet-card, canvas { min-height: 470px; height: 470px; }
+  #screen { min-height: 470px; padding: 18px 10px; font-size: 9px; }
+  .terminal-title { display: none; }
 }

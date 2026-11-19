@@ -19,17 +19,20 @@
       </div>
     </section>
 
-    <section class="bouquet-card" aria-label="Animated flower bouquet">
-      <canvas id="bouquet" aria-label="An animated flower bouquet"></canvas>
-      <div class="card-glow"></div>
+    <section class="terminal-window" aria-label="Animated flower bouquet terminal">
+      <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">bouquet3d.py — terminal</span></div>
+      <pre id="screen" aria-live="off"></pre>
     </section>
 
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
         <button id="pause" type="button">Pause</button>
-        <label class="range-label" for="speed">Breeze <input id="speed" type="range" min="0" max="2" step="0.1" value="1"><span id="speed-value">1×</span></label>
-        <button id="surprise" type="button" class="accent">Surprise me</button>
+        <button id="slower" type="button">− Speed</button>
+        <button id="faster" type="button">+ Speed</button>
+        <button id="colors" type="button">Colors</button>
+        <button id="hearts" type="button">More hearts</button>
+        <button id="surprise" type="button" class="accent">Next bouquet</button>
       </div>
       <p class="keyboard-hint">Tip: press <kbd>Space</kbd> to pause and <kbd>←</kbd> <kbd>→</kbd> to change bouquets.</p>
     </section>

@@ -1,198 +1,138 @@
-const canvas = document.querySelector('#bouquet');
-const ctx = canvas.getContext('2d');
-const themesEl = document.querySelector('#themes');
-const messageEl = document.querySelector('#message');
-const pauseEl = document.querySelector('#pause');
-const speedEl = document.querySelector('#speed');
-const speedValueEl = document.querySelector('#speed-value');
-const surpriseEl = document.querySelector('#surprise');
+const screen = document.querySelector('#screen');
+const messageInput = document.querySelector('#message');
+const pauseButton = document.querySelector('#pause');
+const slowerButton = document.querySelector('#slower');
+const fasterButton = document.querySelector('#faster');
+const colorsButton = document.querySelector('#colors');
+const heartsButton = document.querySelector('#hearts');
+const nextButton = document.querySelector('#surprise');
 
 const themes = [
-  { name: 'Romantic', bg: ['#211225', '#5a2946'], flowers: ['#f6abc7', '#d96592', '#fff0f5'], centers: '#e8ad55', accent: '#f5a7c2', count: 10 },
-  { name: 'Sunset', bg: ['#24131a', '#8b3e32'], flowers: ['#ff9b50', '#f7c65e', '#e85c54'], centers: '#542a2d', accent: '#ffb36a', count: 9 },
-  { name: 'Lavender Garden', bg: ['#171426', '#453665'], flowers: ['#c5a9ff', '#8f6edc', '#f7eaff'], centers: '#f4cf72', accent: '#c7b0ff', count: 12 },
-  { name: 'Spring', bg: ['#10201d', '#386b5a'], flowers: ['#fff6d6', '#ff9ec2', '#ffd264'], centers: '#d99134', accent: '#9fe2bb', count: 13 },
-  { name: 'Midnight', bg: ['#0d1023', '#242d63'], flowers: ['#8cb6ff', '#bd8bff', '#f2d8ff'], centers: '#78d5d1', accent: '#9caeff', count: 8 },
-  { name: 'Monochrome', bg: ['#17191c', '#4b5359'], flowers: ['#eef3f5', '#aab5bc', '#ffffff'], centers: '#7d8b94', accent: '#d3e1e8', count: 11 },
+  { name: 'Original', flowers: ['#f4a6c5', '#ff759f', '#ffd36d'], center: '#e6b85c', green: '#5da66e', paper: '#e8ded1', ribbon: '#f19aba' },
+  { name: 'Romantic', flowers: ['#f6abc7', '#d96592', '#fff0f5'], center: '#e8ad55', green: '#5e9b72', paper: '#f2e7de', ribbon: '#e985ad' },
+  { name: 'Sunset', flowers: ['#ff9b50', '#f7c65e', '#e85c54'], center: '#632f32', green: '#648a62', paper: '#e9d8c8', ribbon: '#e87550' },
+  { name: 'Lavender Garden', flowers: ['#c5a9ff', '#8f6edc', '#f7eaff'], center: '#f4cf72', green: '#669b78', paper: '#ddd8e9', ribbon: '#ad8eeb' },
+  { name: 'Spring', flowers: ['#fff6d6', '#ff9ec2', '#ffd264'], center: '#d99134', green: '#5ba472', paper: '#e4e6d7', ribbon: '#7dc99a' },
+  { name: 'Midnight', flowers: ['#8cb6ff', '#bd8bff', '#f2d8ff'], center: '#78d5d1', green: '#538b81', paper: '#c4c8dc', ribbon: '#8e9ef7' },
+  { name: 'Monochrome', flowers: ['#eef3f5', '#aab5bc', '#ffffff'], center: '#7d8b94', green: '#71877d', paper: '#d9dde0', ribbon: '#aebcc5' },
 ];
 
+const presets = [[10, 2], [9, 4], [8, 3], [12, 2], [14, 4], [7, 2], [11, 3]];
 let themeIndex = 0;
+let flowerCount = presets[0][0];
+let heartCount = 12;
+let speed = .6;
 let paused = false;
-let speed = 1;
-let start = performance.now();
-let last = start;
 let elapsed = 0;
-const flowers = [];
+let last = performance.now();
+let bloomStart = performance.now();
 
-function setTheme(index) {
-  themeIndex = (index + themes.length) % themes.length;
-  document.documentElement.style.setProperty('--accent', themes[themeIndex].accent);
-  themesEl.querySelectorAll('button').forEach((button, i) => button.classList.toggle('active', i === themeIndex));
+function setTheme(next) {
+  themeIndex = (next + themes.length) % themes.length;
+  flowerCount = presets[themeIndex][0];
+  bloomStart = performance.now();
 }
 
-themes.forEach((theme, index) => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = theme.name;
-  button.addEventListener('click', () => setTheme(index));
-  themesEl.append(button);
-});
-setTheme(0);
+function fit() {
+  return screen.clientWidth < 620 ? 56 : Math.min(88, Math.max(64, Math.floor(screen.clientWidth / 8.4)));
+}
 
-function seededFlowers() {
-  flowers.length = 0;
-  const count = themes[themeIndex].count;
-  for (let i = 0; i < count; i += 1) {
-    const angle = -Math.PI * .92 + (i / Math.max(1, count - 1)) * Math.PI * .84;
-    const radius = .15 + (i % 4) * .045;
-    flowers.push({
-      x: Math.cos(angle) * radius,
-      y: .16 + Math.sin(angle) * radius * .62,
-      size: .09 + (i % 3) * .014,
-      phase: i * 1.71,
-      petals: 5 + (i % 4),
-      kind: i % 5 === 0 ? 'tulip' : 'round',
-    });
+function put(grid, x, y, char, color, z = 0) {
+  if (y < 0 || y >= grid.length || x < 0 || x >= grid[0].length) return;
+  if (z >= grid[y][x].z) grid[y][x] = { char, color, z };
+}
+
+function line(grid, x1, y1, x2, y2, char, color, z = 0) {
+  const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+  for (let i = 0; i <= steps; i += 1) {
+    const p = steps ? i / steps : 0;
+    put(grid, Math.round(x1 + (x2 - x1) * p), Math.round(y1 + (y2 - y1) * p), char, color, z);
   }
 }
 
-function resize() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-window.addEventListener('resize', resize);
-resize();
-
-function flower(x, y, size, petals, color, center, kind, sway) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(sway * .35);
-  if (kind === 'tulip') {
-    ctx.beginPath();
-    ctx.moveTo(-size, size * .2);
-    ctx.quadraticCurveTo(-size * .9, -size * 1.05, 0, -size * .35);
-    ctx.quadraticCurveTo(size * .9, -size * 1.05, size, size * .2);
-    ctx.quadraticCurveTo(size * .55, size * .72, 0, size * .35);
-    ctx.quadraticCurveTo(-size * .55, size * .72, -size, size * .2);
-    ctx.fillStyle = color;
-    ctx.fill();
-  } else {
-    for (let i = 0; i < petals; i += 1) {
-      ctx.save();
-      ctx.rotate((Math.PI * 2 * i) / petals);
-      ctx.beginPath();
-      ctx.ellipse(0, -size * .62, size * .28, size * .72, 0, 0, Math.PI * 2);
-      ctx.fillStyle = color;
-      ctx.fill();
-      ctx.restore();
-    }
-    ctx.beginPath();
-    ctx.arc(0, 0, size * .32, 0, Math.PI * 2);
-    ctx.fillStyle = center;
-    ctx.fill();
+function drawFlower(grid, x, y, size, color, center, tulip, z) {
+  if (tulip) {
+    ['  .  ', ' .^. ', '.^^^.', '.^.^.'].forEach((row, dy) => [...row].forEach((char, dx) => {
+      if (char !== ' ') put(grid, x + dx - 2, y + dy - 1, char, color, z + 2);
+    }));
+    return;
   }
-  ctx.restore();
+  const petals = size > 3 ? [[0, -2], [-2, -1], [2, -1], [-2, 1], [2, 1], [0, 2]] : [[0, -1], [-1, 0], [1, 0], [0, 1]];
+  petals.forEach(([dx, dy]) => put(grid, x + dx, y + dy, size > 3 ? '#' : '*', color, z + 2));
+  put(grid, x, y, 'o', center, z + 3);
 }
 
-function draw(now) {
+function render(now) {
+  const cols = fit();
+  const rows = window.innerWidth < 620 ? 27 : 32;
   const theme = themes[themeIndex];
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  const dt = Math.min(.05, (now - last) / 1000);
+  const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ char: ' ', color: '', z: -Infinity })));
+  if (!paused) elapsed += Math.min(.05, (now - last) / 1000) * speed;
   last = now;
-  if (!paused) elapsed += dt * speed;
   const t = elapsed;
-  const scale = Math.min(width, height) * 1.03;
+  const bloom = Math.min(1, (now - bloomStart) / 1400);
+  const angle = t;
+  const cx = Math.floor(cols / 2);
+  const base = rows - 7;
+  const spread = Math.min(cols * .34, 27);
 
-  const gradient = ctx.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, theme.bg[0]);
-  gradient.addColorStop(1, theme.bg[1]);
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.save();
-  ctx.globalAlpha = .18;
-  for (let i = 0; i < 26; i += 1) {
-    const x = (Math.sin(i * 72.3) * .5 + .5) * width;
-    const y = ((i * 47 + t * (7 + i % 4)) % (height + 30)) - 15;
-    ctx.fillStyle = theme.flowers[i % theme.flowers.length];
-    ctx.fillRect(x, y, 2, 2);
+  for (let i = 0; i < flowerCount; i += 1) {
+    const ratio = flowerCount === 1 ? .5 : i / (flowerCount - 1);
+    const arc = (ratio - .5) * Math.PI * .92;
+    const radius = spread * (.55 + (i % 3) * .13);
+    const x3 = Math.sin(arc) * radius;
+    const z3 = Math.cos(arc) * radius;
+    const y3 = 7 - Math.sin(ratio * Math.PI) * 8 - (i % 3) * 1.2;
+    const xr = x3 * Math.cos(angle) - z3 * Math.sin(angle);
+    const depth = z3 * Math.cos(angle) + x3 * Math.sin(angle);
+    const sway = Math.sin(t * 1.3 + i * 1.7) * (1 + i / flowerCount);
+    const fx = Math.round(cx + (xr + sway) * bloom / 8);
+    const fy = Math.round(base - y3 * bloom * .62);
+    line(grid, cx + Math.round(Math.sin(t * .8) * 2), base + 1, fx, fy + 2, '|', theme.green, depth);
+    if (i % 2 === 0) put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), '/', theme.green, depth + .1);
+    drawFlower(grid, fx, fy, i % 3 === 0 ? 4 : 3, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
   }
-  ctx.restore();
 
-  const cx = width / 2;
-  const baseY = height * .84;
-  const wind = Math.sin(t * .85) * .035 + Math.sin(t * 1.9) * .012;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#5e9b72';
-  ctx.lineWidth = Math.max(2, scale * .008);
-  flowers.forEach((item, i) => {
-    const sway = wind * (1 + i * .035) + Math.sin(t * 1.4 + item.phase) * .012;
-    const fx = cx + item.x * scale + sway * scale;
-    const fy = height * .34 - item.y * scale + Math.sin(t * 1.3 + item.phase) * 2;
-    ctx.beginPath();
-    ctx.moveTo(cx + (i - flowers.length / 2) * scale * .012, baseY);
-    ctx.quadraticCurveTo(cx + sway * scale * .35, height * .55, fx, fy + item.size * scale * .45);
-    ctx.stroke();
-    if (i % 2 === 0) {
-      ctx.fillStyle = '#64a878';
-      ctx.beginPath();
-      ctx.ellipse(cx + sway * scale * .5 + item.x * scale * .55, height * .62 + i * 2, scale * .06, scale * .018, sway, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  });
+  for (let y = base + 1; y < rows - 2; y += 1) {
+    const half = Math.round((y - base) * .42) + 3;
+    line(grid, cx - half, y, cx + half, y, y === base + 1 ? '_' : '.', theme.paper, -20);
+  }
+  line(grid, cx - 4, base + 3, cx + 4, base + 3, '=', theme.ribbon, -19);
+  line(grid, cx - 2, base + 4, cx - 7, base + 8, '\\', theme.ribbon, -19);
+  line(grid, cx + 2, base + 4, cx + 7, base + 8, '/', theme.ribbon, -19);
 
-  // Paper wrap and ribbon.
-  ctx.fillStyle = 'rgba(242, 226, 214, .85)';
-  ctx.beginPath();
-  ctx.moveTo(cx - scale * .22, baseY - scale * .06);
-  ctx.lineTo(cx + scale * .22, baseY - scale * .06);
-  ctx.lineTo(cx + scale * .12, height * .96);
-  ctx.lineTo(cx - scale * .12, height * .96);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = theme.accent;
-  ctx.lineWidth = scale * .015;
-  ctx.beginPath();
-  ctx.ellipse(cx, baseY - scale * .065, scale * .22, scale * .035, 0, 0, Math.PI * 2);
-  ctx.stroke();
+  for (let i = 0; i < heartCount; i += 1) {
+    const phase = i * 2.31;
+    const hx = Math.floor(((i * 19 + Math.sin(t * .8 + phase) * 4) % (cols - 2)) + 1);
+    const hy = Math.floor(rows - 3 - ((t * (2 + (i % 3) * .4) + i * 3) % (rows - 7)));
+    put(grid, hx, hy, '♥', theme.flowers[(i + 1) % theme.flowers.length], -50);
+  }
 
-  flowers.forEach((item, i) => {
-    const sway = wind * (1 + i * .035) + Math.sin(t * 1.4 + item.phase) * .012;
-    const fx = cx + item.x * scale + sway * scale;
-    const fy = height * .34 - item.y * scale + Math.sin(t * 1.3 + item.phase) * 2;
-    const breathe = 1 + Math.sin(t * 2 + item.phase) * .035;
-    flower(fx, fy, item.size * scale * breathe, item.petals, theme.flowers[i % theme.flowers.length], theme.centers, item.kind, sway);
-  });
+  const message = messageInput.value || 'for you ♥';
+  const messageStart = Math.max(0, Math.floor((cols - message.length) / 2));
+  [...message].forEach((char, i) => put(grid, messageStart + i, rows - 2, char, theme.flowers[(i + Math.floor(t * 5)) % theme.flowers.length], 100));
+  const hint = `${theme.name}  •  P pause  +/- speed  C colors  H hearts`;
+  [...hint].forEach((char, i) => put(grid, Math.min(cols - 1, Math.max(0, Math.floor((cols - hint.length) / 2) + i)), rows - 1, char, '#89909a', 100));
 
-  ctx.fillStyle = theme.accent;
-  ctx.font = `600 ${Math.max(14, scale * .027)}px Inter, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.fillText(messageEl.value || 'for you ♥', cx, height - 24);
-  requestAnimationFrame(draw);
+  screen.innerHTML = grid.map(row => row.map(cell => cell.char === ' ' ? ' ' : `<span style="color:${cell.color}">${cell.char}</span>`).join('')).join('\n');
+  requestAnimationFrame(render);
 }
 
-pauseEl.addEventListener('click', () => {
-  paused = !paused;
-  pauseEl.textContent = paused ? 'Resume' : 'Pause';
-});
-speedEl.addEventListener('input', () => {
-  speed = Number(speedEl.value);
-  speedValueEl.textContent = `${speed}×`;
-});
-surpriseEl.addEventListener('click', () => setTheme(Math.floor(Math.random() * themes.length)));
+pauseButton.addEventListener('click', () => { paused = !paused; pauseButton.textContent = paused ? 'Resume' : 'Pause'; });
+slowerButton.addEventListener('click', () => { speed = Math.max(.1, speed - .1); });
+fasterButton.addEventListener('click', () => { speed = Math.min(2, speed + .1); });
+colorsButton.addEventListener('click', () => setTheme(themeIndex + 1));
+heartsButton.addEventListener('click', () => { heartCount = heartCount >= 30 ? 6 : heartCount + 3; });
+nextButton.addEventListener('click', () => setTheme(themeIndex + 1));
 document.addEventListener('keydown', (event) => {
   if (event.target.matches('input')) return;
-  if (event.code === 'Space') { event.preventDefault(); pauseEl.click(); }
-  if (event.key === 'ArrowRight') setTheme(themeIndex + 1);
+  if (event.key.toLowerCase() === 'p' || event.code === 'Space') { event.preventDefault(); pauseButton.click(); }
+  if (event.key === '+' || event.key === '=') fasterButton.click();
+  if (event.key === '-') slowerButton.click();
+  if (event.key.toLowerCase() === 'c') colorsButton.click();
+  if (event.key.toLowerCase() === 'h') heartsButton.click();
+  if (event.key === 'ArrowRight') nextButton.click();
   if (event.key === 'ArrowLeft') setTheme(themeIndex - 1);
 });
 
-// Rebuild the arrangement whenever the visitor changes the bouquet theme.
-const originalSetTheme = setTheme;
-setTheme = (index) => { originalSetTheme(index); seededFlowers(); };
-setTheme(0);
-requestAnimationFrame(draw);
+requestAnimationFrame(render);
