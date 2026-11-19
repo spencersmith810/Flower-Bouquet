@@ -34,7 +34,7 @@ function setTheme(next) {
 }
 
 function fit() {
-  return screen.clientWidth < 620 ? 56 : Math.min(140, Math.max(72, Math.floor(screen.clientWidth / 9)));
+  return screen.clientWidth < 620 ? 72 : Math.min(190, Math.max(96, Math.floor(screen.clientWidth / 8.5)));
 }
 
 function put(grid, x, y, char, color, z = 0) {
@@ -65,11 +65,11 @@ function drawFlower(grid, x, y, size, color, center, tulip, z) {
       const distance = Math.sqrt(nx * nx + ny * ny);
       if (distance > 1) continue;
       const angle = Math.atan2(ny, nx);
-      const petalEdge = .42 + .58 * Math.abs(Math.cos(5 * angle));
+      const petalEdge = .38 + .62 * Math.abs(Math.cos(7 * angle));
       if (distance < .28) {
         put(grid, x + dx, y + dy, distance < .13 ? '@' : 'o', center, z + 3);
       } else if (distance < petalEdge) {
-        const chars = distance > .82 ? '+' : distance > .62 ? '*' : '#';
+        const chars = distance > .88 ? '+' : distance > .72 ? '*' : distance > .5 ? '%' : '#';
         put(grid, x + dx, y + dy, chars, color, z + 2);
       }
     }
@@ -78,7 +78,7 @@ function drawFlower(grid, x, y, size, color, center, tulip, z) {
 
 function render(now) {
   const cols = fit();
-  const rows = window.innerWidth < 620 ? 27 : 32;
+  const rows = window.innerWidth < 620 ? 32 : 46;
   const theme = themes[themeIndex];
   const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ char: ' ', color: '', z: -Infinity })));
   if (!paused) elapsed += Math.min(.05, (now - last) / 1000) * speed;
@@ -87,8 +87,8 @@ function render(now) {
   const bloom = Math.min(1, (now - bloomStart) / 1400);
   const angle = t;
   const cx = Math.floor(cols / 2);
-  const base = rows - 6;
-  const spread = Math.min(cols * .30, 40);
+  const base = rows - 8;
+  const spread = Math.min(cols * .30, 48);
 
   for (let i = 0; i < flowerCount; i += 1) {
     const ratio = flowerCount === 1 ? .5 : i / (flowerCount - 1);
@@ -96,18 +96,18 @@ function render(now) {
     const radius = spread * (.50 + (i % 4) * .12);
     const x3 = Math.sin(arc) * radius;
     const z3 = Math.cos(arc) * radius;
-    const y3 = 7 + Math.sin(ratio * Math.PI) * 12 - (i % 3) * 1.4;
+    const y3 = 8 + Math.sin(ratio * Math.PI) * 18 - (i % 3) * 1.8;
     const xr = x3 * Math.cos(angle) - z3 * Math.sin(angle);
     const depth = z3 * Math.cos(angle) + x3 * Math.sin(angle);
     const sway = Math.sin(t * 1.3 + i * 1.7) * (1.5 + i / flowerCount);
     const fx = Math.round(cx + (xr + sway) * bloom);
-    const fy = Math.round(base - y3 * bloom * .82);
+    const fy = Math.round(base - y3 * bloom * .92);
     line(grid, cx + Math.round(Math.sin(t * .8) * 2), base + 1, fx, fy + 3, i % 3 ? '|' : '/', theme.green, depth);
     if (i % 2 === 0) {
       put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), i % 4 ? '%' : '*', theme.green, depth + .1);
       put(grid, Math.round((cx + fx) / 2) + 2, Math.round((base + fy) / 2) + 1, '\\', theme.green, depth + .1);
     }
-    drawFlower(grid, fx, fy, i % 4 === 0 ? 5 : 4, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
+    drawFlower(grid, fx, fy, i % 4 === 0 ? 10 : 8, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
   }
 
   // Dense filler branches and the folded paper wrap.

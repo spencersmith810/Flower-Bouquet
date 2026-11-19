@@ -34,7 +34,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(142,226,14
 .terminal-bar { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-bottom: 1px solid #c8c8c8; color: #555b62; background: #f1f1f1; font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .dot { width: 13px; height: 13px; border-radius: 50%; }.dot.red { background: #ff5f57; }.dot.yellow { background: #febc2e; }.dot.green { background: #28c840; }
 .terminal-title { flex: 1; text-align: center; }
-#screen { min-height: 560px; margin: 0; padding: 24px 26px; overflow: hidden; color: #d7dbe2; background: #252d3b; font: clamp(11px, 1.1vw, 16px)/1.16 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .01em; white-space: pre; text-shadow: 0 0 8px rgba(255,255,255,.08); }
+#screen { min-height: 700px; margin: 0; padding: 22px 26px; overflow: hidden; color: #d7dbe2; background: #252d3b; font: clamp(10px, .9vw, 15px)/1.04 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .01em; white-space: pre; text-shadow: 0 0 8px rgba(255,255,255,.08); }
 .controls { display: grid; gap: 14px; padding: 18px 0 0; }
 .theme-list { display: none; }
 button { border: 1px solid var(--line); border-radius: 2px; padding: 9px 12px; color: var(--muted); background: #101711; cursor: pointer; font: 700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .04em; transition: .15s ease; }
@@ -49,7 +49,7 @@ kbd { border: 1px solid #405047; border-bottom-width: 2px; border-radius: 2px; p
   .intro { display: block; }
   .lede { margin-top: 22px; }
   .message-row { margin-top: 20px; }
-  #screen { min-height: 470px; padding: 18px 10px; font-size: 9px; }
+  #screen { min-height: 520px; padding: 18px 8px; font-size: 8px; }
   .terminal-title { font-size: 10px; }
   .dot { width: 10px; height: 10px; }
 }
