@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="An animated ASCII flower bouquet rendered in your browser.">
-  <title>Flower Bouquet</title>
-  <link rel="stylesheet" href="styles.css?v=20261119c">
+  <meta name="description" content="A collection of animated ASCII scenes for your browser.">
+  <title>ASCII Scenes</title>
+  <link rel="stylesheet" href="styles.css?v=20261119d">
 </head>
 <body>
   <main class="shell">
     <section class="intro">
-      <p class="eyebrow">ASCII FLOWER BOUQUET // WEB EDITION</p>
-      <h1>ASCII FLOWER<br><em>BOUQUET</em></h1>
-      <p class="lede">A browser-based terminal rendering of a spinning 3D bouquet.</p>
+      <p class="eyebrow">ASCII SCENES // WEB EDITION</p>
+      <h1>ASCII<br><em>SCENES</em></h1>
+      <p class="lede">Animated scenes built from characters. Choose one, make it yours, and share it.</p>
       <div class="message-row">
         <label for="message">MESSAGE</label>
         <input id="message" maxlength="42" value="for you ♥" autocomplete="off" spellcheck="false">
       </div>
     </section>
 
-    <section class="terminal-window" aria-label="Animated flower bouquet terminal">
+    <section class="terminal-window" aria-label="Animated ASCII scene terminal">
       <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">Flower Bouquet — Python bouquet3d.py — 213×54</span></div>
       <p id="render-status" role="status">Loading the Python renderer…</p>
       <pre id="screen" tabindex="0" aria-label="Animated ASCII flower bouquet; scroll to view when zoomed" aria-live="off"></pre>
@@ -28,10 +28,19 @@
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
+        <label for="scene">SCENE</label>
+        <select id="scene" aria-label="Choose a scene">
+          <option value="bouquet">Flower bouquet</option><option value="tree">Seasonal tree</option>
+          <option value="snowglobe">Snow globe</option><option value="aquarium">Aquarium</option>
+          <option value="space">Space</option><option value="ocean">Ocean</option>
+          <option value="rain">Rainy window</option><option value="fireworks">Fireworks</option>
+          <option value="nightsky">Night sky</option>
+        </select>
         <button id="pause" type="button" aria-pressed="false">PAUSE</button>
         <button id="slower" type="button" aria-label="Decrease rotation speed">− SPEED</button>
         <output id="speed-value" aria-live="polite">0.6</output>
         <button id="faster" type="button" aria-label="Increase rotation speed">+ SPEED</button>
+        <span class="option-group" data-for="bouquet">
         <label for="theme">THEME</label>
         <select id="theme" aria-label="Bouquet theme">
           <option>Original</option><option>Romantic</option><option>Sunset</option>
@@ -49,17 +58,33 @@
           <option value="classic">Classic</option><option value="detailed">Detailed</option>
         </select>
         <button id="hearts" type="button">ADD HEARTS</button>
+        </span>
+        <span class="option-group" data-for="tree" hidden><label for="season">SEASON</label>
+          <select id="season"><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select>
+        </span>
+        <span class="option-group" data-for="snowglobe" hidden><button id="shake" type="button">SHAKE GLOBE</button></span>
+        <span class="option-group" data-for="aquarium" hidden><label for="water-color">WATER</label>
+          <select id="water-color"><option value="blue">Blue</option><option value="teal">Teal</option><option value="purple">Purple</option></select>
+          <label for="fish-color">FISH</label><select id="fish-color"><option value="mixed">Mixed</option><option value="coral">Coral</option><option value="cool">Cool</option></select>
+        </span>
+        <span class="option-group" data-for="ocean" hidden><label for="ocean-time">SKY</label>
+          <select id="ocean-time"><option value="sunset">Sunset</option><option value="night">Moonlit</option></select>
+        </span>
+        <span class="option-group" data-for="fireworks" hidden><label for="firework-color">COLORS</label>
+          <select id="firework-color"><option value="rainbow">Rainbow</option><option value="warm">Warm</option><option value="cool">Cool</option></select>
+        </span>
         <button id="zoom-out" type="button">− ZOOM</button>
         <button id="zoom-in" type="button">+ ZOOM</button>
         <button id="zoom-fit" type="button">FIT</button>
         <button id="fullscreen" type="button">FULL SCREEN</button>
-        <button id="share" type="button" class="accent">SHARE BOUQUET</button>
+        <button id="share" type="button" class="accent">SHARE SCENE</button>
       </div>
       <p id="share-status" class="keyboard-hint" role="status"></p>
       <label id="share-link-label" hidden>SHARE LINK <input id="share-link" type="text" readonly></label>
-      <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed <kbd>C</kbd> next theme <kbd>H</kbd> hearts <kbd>←</kbd>/<kbd>→</kbd> themes. On small screens, zoom in and scroll to explore.</p>
+      <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed. Bouquet: <kbd>C</kbd> theme <kbd>H</kbd> hearts. On small screens, zoom in and scroll to explore.</p>
     </section>
   </main>
-  <script src="app.js?v=20261119c"></script>
+  <script src="scenes.js?v=20261119d"></script>
+  <script src="app.js?v=20261119d"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ const vm = require('node:vm');
 function setup(search = '') {
   const elements = {};
   for (const id of ['screen', 'message', 'pause', 'render-status', 'theme', 'flowers', 'detail', 'speed-value',
+    'scene', 'season', 'water-color', 'fish-color', 'ocean-time', 'firework-color', 'shake',
     'share-status', 'share-link', 'share-link-label', 'slower', 'faster', 'hearts',
     'zoom-in', 'zoom-out', 'zoom-fit', 'fullscreen', 'share']) {
     elements[`#${id}`] = {
@@ -18,6 +19,8 @@ function setup(search = '') {
     };
   }
   elements['.terminal-title'] = { textContent: '' };
+  const groups = ['bouquet', 'tree', 'snowglobe', 'aquarium', 'ocean', 'fireworks']
+    .map(name => ({ dataset: { for: name }, hidden: false }));
   let worker;
   const timers = [];
   class WorkerMock {
@@ -26,6 +29,7 @@ function setup(search = '') {
   }
   const document = {
     querySelector: selector => elements[selector],
+    querySelectorAll: () => groups,
     addEventListener() {},
     createElement: () => ({ getContext: () => ({ measureText: () => ({ width: 9.6 }) }) }),
   };
@@ -41,8 +45,10 @@ function setup(search = '') {
     setTimeout: callback => { timers.push(callback); return timers.length; },
   };
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const scenesSource = fs.readFileSync(path.join(__dirname, '..', 'scenes.js'), 'utf8');
+  vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
-  return { elements, worker, timers };
+  return { elements, worker, timers, groups, scenes: window.AsciiScenes };
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
@@ -96,4 +102,54 @@ test('choosing a flower style and detail level reaches the renderer', () => {
   timers.shift()();
   assert.equal(worker.messages.at(-1).flowerStyle, 'sunflowers');
   assert.equal(worker.messages.at(-1).detail, 'detailed');
+});
+
+test('all eight scenes produce distinct animated character grids', () => {
+  const { scenes } = setup();
+  const names = ['tree', 'snowglobe', 'aquarium', 'space', 'ocean', 'rain', 'fireworks', 'nightsky'];
+  const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
+  assert.equal(new Set(frames).size, names.length);
+  for (const frame of frames) {
+    assert.equal(frame.split('\n').length, 38);
+    assert.match(frame, /Hello/);
+  }
+  for (const scene of names) {
+    assert.notEqual(scenes.render(scene, { time: 2 }), scenes.render(scene, { time: 3 }), scene);
+  }
+});
+
+test('scene choice and options round-trip through sharing', async () => {
+  const { elements, groups } = setup('?scene=tree&season=winter&fish=cool&fireworks=warm');
+  assert.equal(elements['#scene'].value, 'tree');
+  assert.equal(elements['#season'].value, 'winter');
+  assert.equal(groups.find(group => group.dataset.for === 'tree').hidden, false);
+  assert.equal(groups.find(group => group.dataset.for === 'bouquet').hidden, true);
+  await elements['#share'].click();
+  const url = new URL(elements['#share-link'].value);
+  assert.equal(url.searchParams.get('scene'), 'tree');
+  assert.equal(url.searchParams.get('season'), 'winter');
+  assert.equal(url.searchParams.get('fish'), 'cool');
+  assert.equal(url.searchParams.get('fireworks'), 'warm');
+});
+
+test('scene controls change the generated artwork', () => {
+  const { scenes } = setup();
+  assert.notEqual(scenes.render('tree', { time: 2, season: 'spring' }),
+                  scenes.render('tree', { time: 2, season: 'winter' }));
+  assert.notEqual(scenes.render('snowglobe', { time: 2, shakeTime: 1 }),
+                  scenes.render('snowglobe', { time: 2 }));
+  assert.notEqual(scenes.render('aquarium', { time: 2, waterColor: 'teal', fishColor: 'coral' }),
+                  scenes.render('aquarium', { time: 2, waterColor: 'purple', fishColor: 'cool' }));
+  assert.notEqual(scenes.render('ocean', { time: 2, oceanTime: 'sunset' }),
+                  scenes.render('ocean', { time: 2, oceanTime: 'night' }));
+  assert.notEqual(scenes.render('fireworks', { time: 2, fireworkColor: 'warm' }),
+                  scenes.render('fireworks', { time: 2, fireworkColor: 'cool' }));
+});
+
+test('snow globe shake resumes a paused animation', () => {
+  const { elements } = setup('?scene=snowglobe');
+  elements['#pause'].click();
+  assert.equal(elements['#pause'].textContent, 'RESUME');
+  elements['#shake'].click();
+  assert.equal(elements['#pause'].textContent, 'PAUSE');
 });

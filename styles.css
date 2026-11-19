@@ -46,6 +46,8 @@ button { border: 1px solid var(--line); border-radius: 2px; padding: 9px 12px; c
 button:hover, button:focus-visible { border-color: var(--accent); color: var(--ink); background: #17231a; }
 button.accent { border-color: var(--accent); color: #0a0d0b; background: var(--accent); }
 .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.option-group { display: contents; }
+.option-group[hidden] { display: none; }
 .control-row label, .control-row output { color: var(--muted); font-size: 12px; }
 #share-link-label { color: var(--muted); font-size: 12px; }
 #share-link-label:not([hidden]) { display: grid; gap: 6px; }

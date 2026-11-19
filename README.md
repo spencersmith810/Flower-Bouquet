@@ -2,11 +2,13 @@
 
 ## Browser version
 
-The web version uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. Edit the message, adjust the speed, and use **Share Bouquet** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+Select a scene to explore the flower bouquet, seasonal tree, snow globe, aquarium, space, ocean, rainy window, fireworks, or night sky. The tree offers four seasons; the globe can be shaken; the aquarium, ocean, and fireworks have color or sky controls. Edit the message, adjust the speed, and use **Share Scene** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+
+The bouquet uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. The other scenes run directly in JavaScript using a character grid.
 
 Classic uses a 212×53 character grid; Detailed uses 300×75 for finer petals while keeping visible ASCII characters. Detailed mode may run more slowly on some devices.
 
-Use **+ Zoom** and scroll to inspect the bouquet on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. It loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
+Use **+ Zoom** and scroll to inspect a scene on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. The bouquet loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 
 To preview it locally:
 
