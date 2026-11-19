@@ -52,14 +52,28 @@ function line(grid, x1, y1, x2, y2, char, color, z = 0) {
 
 function drawFlower(grid, x, y, size, color, center, tulip, z) {
   if (tulip) {
-    ['  .  ', ' .^. ', '.^^^.', '.^.^.'].forEach((row, dy) => [...row].forEach((char, dx) => {
+    ['   .   ', '  .^.  ', ' .^^^. ', '.^^^^^.', ' .^^^. '].forEach((row, dy) => [...row].forEach((char, dx) => {
       if (char !== ' ') put(grid, x + dx - 2, y + dy - 1, char, color, z + 2);
     }));
     return;
   }
-  const petals = size > 3 ? [[0, -2], [-2, -1], [2, -1], [-2, 1], [2, 1], [0, 2]] : [[0, -1], [-1, 0], [1, 0], [0, 1]];
-  petals.forEach(([dx, dy]) => put(grid, x + dx, y + dy, size > 3 ? '#' : '*', color, z + 2));
-  put(grid, x, y, 'o', center, z + 3);
+  const radius = size;
+  for (let dy = -radius; dy <= radius; dy += 1) {
+    for (let dx = -radius * 2; dx <= radius * 2; dx += 1) {
+      const nx = dx / (radius * 2);
+      const ny = dy / radius;
+      const distance = Math.sqrt(nx * nx + ny * ny);
+      if (distance > 1) continue;
+      const angle = Math.atan2(ny, nx);
+      const petalEdge = .42 + .58 * Math.abs(Math.cos(5 * angle));
+      if (distance < .28) {
+        put(grid, x + dx, y + dy, distance < .13 ? '@' : 'o', center, z + 3);
+      } else if (distance < petalEdge) {
+        const chars = distance > .82 ? '+' : distance > .62 ? '*' : '#';
+        put(grid, x + dx, y + dy, chars, color, z + 2);
+      }
+    }
+  }
 }
 
 function render(now) {
@@ -73,33 +87,43 @@ function render(now) {
   const bloom = Math.min(1, (now - bloomStart) / 1400);
   const angle = t;
   const cx = Math.floor(cols / 2);
-  const base = rows - 7;
-  const spread = Math.min(cols * .34, 27);
+  const base = rows - 6;
+  const spread = Math.min(cols * .30, 40);
 
   for (let i = 0; i < flowerCount; i += 1) {
     const ratio = flowerCount === 1 ? .5 : i / (flowerCount - 1);
-    const arc = (ratio - .5) * Math.PI * .92;
-    const radius = spread * (.55 + (i % 3) * .13);
+    const arc = (ratio - .5) * Math.PI * .88;
+    const radius = spread * (.50 + (i % 4) * .12);
     const x3 = Math.sin(arc) * radius;
     const z3 = Math.cos(arc) * radius;
-    const y3 = 3 + Math.sin(ratio * Math.PI) * 11 + (i % 3) * 1.2;
+    const y3 = 7 + Math.sin(ratio * Math.PI) * 12 - (i % 3) * 1.4;
     const xr = x3 * Math.cos(angle) - z3 * Math.sin(angle);
     const depth = z3 * Math.cos(angle) + x3 * Math.sin(angle);
-    const sway = Math.sin(t * 1.3 + i * 1.7) * (1 + i / flowerCount);
+    const sway = Math.sin(t * 1.3 + i * 1.7) * (1.5 + i / flowerCount);
     const fx = Math.round(cx + (xr + sway) * bloom);
-    const fy = Math.round(base - y3 * bloom * .9);
-    line(grid, cx + Math.round(Math.sin(t * .8) * 2), base + 1, fx, fy + 2, '|', theme.green, depth);
-    if (i % 2 === 0) put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), '/', theme.green, depth + .1);
-    drawFlower(grid, fx, fy, i % 3 === 0 ? 4 : 3, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
+    const fy = Math.round(base - y3 * bloom * .82);
+    line(grid, cx + Math.round(Math.sin(t * .8) * 2), base + 1, fx, fy + 3, i % 3 ? '|' : '/', theme.green, depth);
+    if (i % 2 === 0) {
+      put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), i % 4 ? '%' : '*', theme.green, depth + .1);
+      put(grid, Math.round((cx + fx) / 2) + 2, Math.round((base + fy) / 2) + 1, '\\', theme.green, depth + .1);
+    }
+    drawFlower(grid, fx, fy, i % 4 === 0 ? 5 : 4, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
   }
 
-  for (let y = base + 1; y < rows - 2; y += 1) {
-    const half = Math.round((y - base) * .42) + 3;
-    line(grid, cx - half, y, cx + half, y, y === base + 1 ? '_' : '.', theme.paper, -20);
+  // Dense filler branches and the folded paper wrap.
+  for (let i = 0; i < 18; i += 1) {
+    const branchX = cx + Math.round((i - 9) * spread * .055);
+    const branchY = base - 7 - (i % 5) * 2;
+    line(grid, cx, base + 1, branchX, branchY, i % 2 ? ':' : '.', theme.green, -10);
+    put(grid, branchX + (i % 3) - 1, branchY, '+', theme.paper, -9);
   }
-  line(grid, cx - 4, base + 3, cx + 4, base + 3, '=', theme.ribbon, -19);
-  line(grid, cx - 2, base + 4, cx - 7, base + 8, '\\', theme.ribbon, -19);
-  line(grid, cx + 2, base + 4, cx + 7, base + 8, '/', theme.ribbon, -19);
+  for (let y = base + 1; y < rows - 2; y += 1) {
+    const half = Math.round((y - base) * .8) + 5;
+    line(grid, cx - half, y, cx + half, y, y === base + 1 ? '=' : '-', theme.paper, -20);
+  }
+  line(grid, cx - 7, base + 3, cx + 7, base + 3, '=', theme.ribbon, -19);
+  line(grid, cx - 2, base + 4, cx - 10, base + 10, '\\', theme.ribbon, -19);
+  line(grid, cx + 2, base + 4, cx + 10, base + 10, '/', theme.ribbon, -19);
 
   for (let i = 0; i < heartCount; i += 1) {
     const phase = i * 2.31;
