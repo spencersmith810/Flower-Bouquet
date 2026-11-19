@@ -1,5 +1,17 @@
 # Ascii Flower Bouquet
 
+## Browser version
+
+Open `index.html` in a browser for the interactive web bouquet. It includes themed bouquets, an editable message, pause/resume, breeze control, keyboard navigation, and a surprise button.
+
+To preview it locally:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then visit <http://localhost:8000>.
+
 ## Tips
 
 - Make your terminal window big, or zoom out a bit (`Ctrl -` / `Cmd -`). More space means a smoother looking bouquet.
