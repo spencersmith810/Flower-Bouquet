@@ -31,7 +31,7 @@ class BrowserBouquet:
         bouquet3d.update_hearts(self.hearts, 0 if paused else dt)
         hint = (f"P: pause  +/-: speed  C: {bouquet3d.COLOR_THEMES[theme]['name']}  "
                 "H: hearts")
-        cols, rows = (300, 75) if detail == "detailed" else (212, 53)
+        cols, rows = (300, 90) if detail == "detailed" else (212, 53)
         return bouquet3d.render(self.scene, self.elapsed, cols, rows, self.hearts,
                                 speed, theme, hint=hint, rotation=self.rotation)
 

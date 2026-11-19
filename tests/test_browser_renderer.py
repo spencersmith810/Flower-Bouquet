@@ -63,7 +63,8 @@ class BrowserRendererTests(unittest.TestCase):
         classic_lines = plain(classic).splitlines()
         detailed_lines = plain(detailed).splitlines()
         self.assertEqual((len(classic_lines), len(classic_lines[0])), (53, 212))
-        self.assertEqual((len(detailed_lines), len(detailed_lines[0])), (75, 300))
+        self.assertEqual((len(detailed_lines), len(detailed_lines[0])), (90, 300))
+        self.assertTrue(all(len(line) == 300 for line in detailed_lines))
         self.assertEqual(self.bouquet.flower_style, "roses")
 
 

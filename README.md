@@ -10,7 +10,7 @@ The bouquet uses the same Python renderer as the terminal version. Choose a them
 
 The aquarium uses a larger 164×52 grid for multi-line fish, plants, coral, rocks, and sand. Choose water and fish palettes using its controls.
 
-Classic uses a 212×53 character grid; Detailed uses 300×75 for finer petals while keeping visible ASCII characters. Detailed mode may run more slowly on some devices.
+Classic uses a 212×53 character grid; Detailed is the default and uses 300×90 for finer petals while keeping visible ASCII characters. Detailed mode may run more slowly on some devices.
 
 Use **+ Zoom** and scroll to inspect a scene on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. The bouquet loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 

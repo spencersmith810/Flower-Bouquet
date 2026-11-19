@@ -77,6 +77,11 @@ test('invalid share settings fall back to defaults', () => {
   assert.equal(elements['#theme'].selectedIndex, 0);
   assert.equal(elements['#speed-value'].textContent, '0.6');
   assert.equal(elements['#flowers'].value, 'original');
+  assert.equal(elements['#detail'].value, 'detailed');
+});
+
+test('classic detail remains available for existing shared links', () => {
+  const { elements } = setup('?detail=classic');
   assert.equal(elements['#detail'].value, 'classic');
 });
 

@@ -16,7 +16,7 @@ const speedValue = document.querySelector('#speed-value');
 const shareStatus = document.querySelector('#share-status');
 const shareLink = document.querySelector('#share-link');
 const shareLabel = document.querySelector('#share-link-label');
-const worker = new Worker('renderer-worker.js?v=20261119f', { type: 'module' });
+const worker = new Worker('renderer-worker.js?v=20261119g', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
@@ -40,7 +40,7 @@ const state = {
   theme: Math.max(0, selectedTheme),
   heartCount: Math.round(boundedNumber(params.get('hearts'), 18, 0, 100)),
   flowerStyle: flowerStyles.includes(params.get('flowers')) ? params.get('flowers') : 'original',
-  detail: detailLevels.includes(params.get('detail')) ? params.get('detail') : 'classic',
+  detail: detailLevels.includes(params.get('detail')) ? params.get('detail') : 'detailed',
   scene: option('scene', Object.keys(sceneNames), 'bouquet'),
   season: option('season', ['spring', 'summer', 'autumn', 'winter'], 'spring'),
   waterColor: option('water', ['blue', 'teal', 'purple'], 'blue'),
@@ -190,7 +190,7 @@ function syncSceneControls() {
   document.querySelectorAll('.option-group').forEach(group => { group.hidden = group.dataset.for !== state.scene; });
   screen.setAttribute('aria-label', `Animated ${sceneNames[state.scene]} ASCII scene; scroll to view when zoomed`);
   terminalTitle.textContent = state.scene === 'bouquet'
-    ? `Flower Bouquet — Python bouquet3d.py — ${state.detail === 'detailed' ? '301×76' : '213×54'}`
+    ? `Flower Bouquet — Python bouquet3d.py — ${state.detail === 'detailed' ? '300×90' : '212×53'}`
     : `${sceneNames[state.scene]} — ASCII scene`;
 }
 sceneSelect.addEventListener('change', () => {
