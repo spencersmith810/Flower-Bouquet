@@ -110,7 +110,7 @@ def add(p, d, k):
     return (p[0] + d[0] * k, p[1] + d[1] * k, p[2] + d[2] * k)
 
 
-def build_scene(variant=0):
+def build_scene(variant=0, flower_style="original"):
     preset = BOUQUET_PRESETS[variant % len(BOUQUET_PRESETS)]
     rnd = random.Random(21 + variant * 17)
     pts = []
@@ -138,11 +138,23 @@ def build_scene(variant=0):
             pts.append((p[0], p[1], p[2], axis[0], 0.0, axis[2], GREENS, -0.15, True, None))
 
         kind = preset["types"][idx % len(preset["types"])]
+        if flower_style == "roses":
+            kind = "rose"
+        elif flower_style == "sunflowers":
+            kind = "sunflower"
+        elif flower_style == "mixed":
+            kind = ("rose", "sunflower", "tulip")[idx % 3]
         if kind == "tulip":
             n_t = sum(1 for previous in range(idx)
                       if preset["types"][previous % len(preset["types"])] == "tulip")
             flowers.append((pos, "tulip", TULIP_COLORS[n_t % len(TULIP_COLORS)], None, 0,
                             rnd.uniform(*preset["size"]) * 0.9, rnd.uniform(0, 6.28)))
+        elif kind == "rose":
+            flowers.append((pos, "rose", (RED, PINK)[idx % 2], DARK_CENTER, 8,
+                            rnd.uniform(*preset["size"]) * 1.1, rnd.uniform(0, 6.28)))
+        elif kind == "sunflower":
+            flowers.append((pos, "sunflower", YELLOW, DARK_CENTER, 18,
+                            rnd.uniform(*preset["size"]) * 1.15, rnd.uniform(0, 6.28)))
         else:
             petals, center, n_pet = DISC_TYPES[disc_i % len(DISC_TYPES)]
             disc_i += 1
@@ -359,18 +371,33 @@ def render(scene, t, cols, rows, hearts, speed=SPIN_SPEED, color_mode=0,
             dy = (row + 0.5 - fy) / ry
             for col in range(int(fx - rx) - 1, int(fx + rx) + 2):
                 dx = (col + 0.5 - fx) / rx
-                if kind == "disc":
+                if kind == "rose":
+                    s = math.sqrt(dx * dx + dy * dy)
+                    ph = math.atan2(dy, dx)
+                    edge = 0.94 + 0.06 * math.cos(5 * ph + seed)
+                    if s > edge:
+                        continue
+                    # Curved petal seams form concentric spirals around the center.
+                    seam = abs(math.sin(13 * s - 2.3 * ph + seed))
+                    b = 0.65 - 0.22 * dx - 0.22 * dy + dim
+                    b -= 0.22 if seam < 0.3 else 0
+                    b = min(0.999, max(0.0, b))
+                    ch = "@" if s < 0.11 else ("+" if seam < 0.3 else PETAL_SHADE[int(b * len(PETAL_SHADE))])
+                    plot(col, row, zt + 0.05 * (1 - s), ch, palette_color(pal, int(b * len(pal))))
+                elif kind in ("disc", "sunflower"):
                     s = math.sqrt(dx * dx + dy * dy)
                     if s > 1.0:
                         continue
-                    if s < 0.3:
+                    center_radius = 0.42 if kind == "sunflower" else 0.3
+                    if s < center_radius:
                         b = 0.55 - 0.35 * dx - 0.35 * dy + dim
                         b = min(0.999, max(0.0, b))
                         plot(col, row, zt + 0.06, "@" if s < 0.17 else "o",
                              palette_color(cpal, int(b * len(cpal))))
                         continue
                     ph = math.atan2(dy, dx)
-                    reach = 0.32 + 0.68 * abs(math.cos(n_pet * (ph + rot) / 2)) ** 0.7
+                    petal_base = 0.42 if kind == "sunflower" else 0.32
+                    reach = petal_base + (1 - petal_base) * abs(math.cos(n_pet * (ph + rot) / 2)) ** 0.7
                     if s > reach:
                         continue
                     edge = -0.22 if s > reach - 0.14 else 0.0

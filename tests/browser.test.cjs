@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 function setup(search = '') {
   const elements = {};
-  for (const id of ['screen', 'message', 'pause', 'render-status', 'theme', 'speed-value',
+  for (const id of ['screen', 'message', 'pause', 'render-status', 'theme', 'flowers', 'detail', 'speed-value',
     'share-status', 'share-link', 'share-link-label', 'slower', 'faster', 'hearts',
     'zoom-in', 'zoom-out', 'zoom-fit', 'fullscreen', 'share']) {
     elements[`#${id}`] = {
@@ -17,6 +17,7 @@ function setup(search = '') {
       click() { return this.callbacks.click?.(); },
     };
   }
+  elements['.terminal-title'] = { textContent: '' };
   let worker;
   const timers = [];
   class WorkerMock {
@@ -45,10 +46,12 @@ function setup(search = '') {
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
-  const { elements, worker } = setup('?message=Hello%20%3Cfriend%3E&theme=Sunset&speed=1.2&hearts=24');
+  const { elements, worker } = setup('?message=Hello%20%3Cfriend%3E&theme=Sunset&speed=1.2&hearts=24&flowers=roses&detail=detailed');
   assert.equal(elements['#message'].value, 'Hello <friend>');
   assert.equal(elements['#theme'].selectedIndex, 2);
   assert.equal(elements['#speed-value'].textContent, '1.2');
+  assert.equal(elements['#flowers'].value, 'roses');
+  assert.equal(elements['#detail'].value, 'detailed');
   worker.onmessage({ data: { type: 'frame', frame: '\x1b[38;5;196m<friend>&\x1b[0m' } });
   assert.match(elements['#screen'].innerHTML, /&lt;friend&gt;&amp;/);
   await elements['#share'].click();
@@ -57,12 +60,16 @@ test('share link preserves settings and escapes messages when displayed', async 
   assert.equal(url.searchParams.get('theme'), 'Sunset');
   assert.equal(url.searchParams.get('speed'), '1.2');
   assert.equal(url.searchParams.get('hearts'), '24');
+  assert.equal(url.searchParams.get('flowers'), 'roses');
+  assert.equal(url.searchParams.get('detail'), 'detailed');
 });
 
 test('invalid share settings fall back to defaults', () => {
-  const { elements } = setup('?theme=unknown&speed=999&hearts=-2');
+  const { elements } = setup('?theme=unknown&speed=999&hearts=-2&flowers=invalid&detail=invalid');
   assert.equal(elements['#theme'].selectedIndex, 0);
   assert.equal(elements['#speed-value'].textContent, '0.6');
+  assert.equal(elements['#flowers'].value, 'original');
+  assert.equal(elements['#detail'].value, 'classic');
 });
 
 test('pausing stops frame requests after the final frame', () => {
@@ -77,4 +84,16 @@ test('pausing stops frame requests after the final frame', () => {
   timers.shift()();
   assert.equal(worker.messages.at(-1).resetClock, true);
   assert.equal(worker.messages.at(-1).paused, false);
+});
+
+test('choosing a flower style and detail level reaches the renderer', () => {
+  const { elements, worker, timers } = setup();
+  worker.onmessage({ data: { type: 'ready' } });
+  elements['#flowers'].value = 'sunflowers';
+  elements['#flowers'].callbacks.change();
+  elements['#detail'].value = 'detailed';
+  elements['#detail'].callbacks.change();
+  timers.shift()();
+  assert.equal(worker.messages.at(-1).flowerStyle, 'sunflowers');
+  assert.equal(worker.messages.at(-1).detail, 'detailed');
 });

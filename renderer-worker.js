@@ -25,7 +25,8 @@ self.onmessage = async ({ data }) => {
       await initialize();
     } else if (data.type === 'frame' && renderer) {
       const frame = renderer.frame(data.timestamp, data.paused, data.speed, data.theme,
-                                   data.heartCount, data.message, data.resetClock);
+                                   data.heartCount, data.message, data.resetClock,
+                                   data.flowerStyle, data.detail);
       self.postMessage({ type: 'frame', frame });
     }
   } catch (error) {

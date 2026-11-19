@@ -2,7 +2,9 @@
 
 ## Browser version
 
-The web version uses the same Python renderer as the terminal version. Choose a theme, edit the message, adjust the speed, and use **Share Bouquet** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+The web version uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. Edit the message, adjust the speed, and use **Share Bouquet** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+
+Classic uses a 212×53 character grid; Detailed uses 300×75 for finer petals while keeping visible ASCII characters. Detailed mode may run more slowly on some devices.
 
 Use **+ Zoom** and scroll to inspect the bouquet on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. It loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 

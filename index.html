@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="An animated ASCII flower bouquet rendered in your browser.">
   <title>Flower Bouquet</title>
-  <link rel="stylesheet" href="styles.css?v=20261119b">
+  <link rel="stylesheet" href="styles.css?v=20261119c">
 </head>
 <body>
   <main class="shell">
@@ -37,6 +37,17 @@
           <option>Original</option><option>Romantic</option><option>Sunset</option>
           <option>Lavender Garden</option><option>Spring</option><option>Midnight</option><option>Monochrome</option>
         </select>
+        <label for="flowers">FLOWERS</label>
+        <select id="flowers" aria-label="Flower type">
+          <option value="original">Original mix</option>
+          <option value="roses">Roses</option>
+          <option value="sunflowers">Sunflowers</option>
+          <option value="mixed">Roses, sunflowers &amp; tulips</option>
+        </select>
+        <label for="detail">DETAIL</label>
+        <select id="detail" aria-label="Rendering detail">
+          <option value="classic">Classic</option><option value="detailed">Detailed</option>
+        </select>
         <button id="hearts" type="button">ADD HEARTS</button>
         <button id="zoom-out" type="button">− ZOOM</button>
         <button id="zoom-in" type="button">+ ZOOM</button>
@@ -49,6 +60,6 @@
       <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed <kbd>C</kbd> next theme <kbd>H</kbd> hearts <kbd>←</kbd>/<kbd>→</kbd> themes. On small screens, zoom in and scroll to explore.</p>
     </section>
   </main>
-  <script src="app.js?v=20261119b"></script>
+  <script src="app.js?v=20261119c"></script>
 </body>
 </html>

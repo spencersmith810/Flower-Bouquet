@@ -49,6 +49,23 @@ class BrowserRendererTests(unittest.TestCase):
         self.assertIn("Sunset", plain(rendered))
         self.assertEqual(len(self.bouquet.hearts), 21)
 
+    def test_flower_styles_have_distinct_shapes(self):
+        for style, expected in (("roses", {"rose"}), ("sunflowers", {"sunflower"}),
+                                ("mixed", {"rose", "sunflower", "tulip"})):
+            with self.subTest(style=style):
+                scene = bouquet3d.build_scene(0, style)
+                self.assertEqual({flower[1] for flower in scene[1]}, expected)
+                self.assertTrue(bouquet3d.render(scene, 3, 212, 53, [], rotation=0))
+
+    def test_detailed_mode_uses_more_character_cells(self):
+        classic = self.bouquet.frame(0, True, .6, 0, 0, "test")
+        detailed = self.bouquet.frame(0, True, .6, 0, 0, "test", False, "roses", "detailed")
+        classic_lines = plain(classic).splitlines()
+        detailed_lines = plain(detailed).splitlines()
+        self.assertEqual((len(classic_lines), len(classic_lines[0])), (53, 212))
+        self.assertEqual((len(detailed_lines), len(detailed_lines[0])), (75, 300))
+        self.assertEqual(self.bouquet.flower_style, "roses")
+
 
 if __name__ == "__main__":
     unittest.main()
