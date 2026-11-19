@@ -2,7 +2,7 @@
 
 ## Browser version
 
-Open `index.html` in a browser for the interactive web bouquet. It includes themed bouquets, an editable message, pause/resume, breeze control, keyboard navigation, and a surprise button.
+The web version uses the same Python renderer as the terminal version. It includes themed bouquets, an editable message, pause/resume, speed controls, and keyboard navigation. It loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 
 To preview it locally:
 

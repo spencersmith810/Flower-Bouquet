@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A living, shareable flower bouquet made with HTML canvas.">
+  <meta name="description" content="An animated ASCII flower bouquet rendered in your browser.">
   <title>Flower Bouquet</title>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -21,13 +21,14 @@
 
     <section class="terminal-window" aria-label="Animated flower bouquet terminal">
       <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">Flower Bouquet — Python bouquet3d.py — 213×54</span></div>
-      <pre id="screen" aria-live="off"></pre>
+      <p id="render-status" role="status">Loading the Python renderer…</p>
+      <pre id="screen" aria-label="Animated ASCII flower bouquet" aria-live="off"></pre>
     </section>
 
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
-        <button id="pause" type="button">PAUSE</button>
+        <button id="pause" type="button" aria-pressed="false">PAUSE</button>
         <button id="slower" type="button">- SPEED</button>
         <button id="faster" type="button">+ SPEED</button>
         <button id="colors" type="button">CYCLE COLORS</button>

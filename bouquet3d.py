@@ -5,11 +5,6 @@ import shutil
 import sys
 import time
 
-if os.name != "nt":
-    import select
-    import termios
-    import tty
-
 FPS = 24
 SPIN_SPEED = 0.6
 TILT = 0.30
@@ -452,6 +447,7 @@ def read_key():
         if msvcrt.kbhit():
             return msvcrt.getwch().lower()
         return None
+    import select
     ready, _, _ = select.select([sys.stdin], [], [], 0)
     return sys.stdin.read(1).lower() if ready else None
 
@@ -475,6 +471,8 @@ def main():
     close_started = None
     old_terminal = None
     if os.name != "nt" and sys.stdin.isatty():
+        import termios
+        import tty
         old_terminal = termios.tcgetattr(sys.stdin)
         tty.setcbreak(sys.stdin.fileno())
     sys.stdout.write("\033[?25l\033[2J")
@@ -539,4 +537,5 @@ def main():
         print("\033[38;5;205m♥\033[0m")
 
 
-main()
+if __name__ == "__main__":
+    main()
