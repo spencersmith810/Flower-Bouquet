@@ -33,7 +33,7 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(142,226,14
 .terminal-window { overflow: hidden; border: 1px solid #354239; border-radius: 3px; background: #090c0a; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
 .terminal-bar { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 13px; border-bottom: 1px solid #253129; color: #7f9185; background: #111812; font: 11px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .terminal-path { color: var(--amber); }.terminal-title { flex: 1; text-align: center; }.terminal-state { color: var(--accent); font-size: 10px; }
-#screen { min-height: 560px; margin: 0; padding: 24px 26px; overflow: hidden; color: #d7dbe2; background: #090c0a; font: 14px/1.16 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .01em; white-space: pre; text-shadow: 0 0 8px rgba(142,226,142,.08); }
+#screen { min-height: 560px; margin: 0; padding: 24px 26px; overflow: hidden; color: #d7dbe2; background: #090c0a; font: clamp(11px, 1.1vw, 16px)/1.16 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .01em; white-space: pre; text-shadow: 0 0 8px rgba(142,226,142,.08); }
 .controls { display: grid; gap: 14px; padding: 18px 0 0; }
 .theme-list { display: none; }
 button { border: 1px solid var(--line); border-radius: 2px; padding: 9px 12px; color: var(--muted); background: #101711; cursor: pointer; font: 700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .04em; transition: .15s ease; }

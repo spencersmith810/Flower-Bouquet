@@ -34,7 +34,7 @@ function setTheme(next) {
 }
 
 function fit() {
-  return screen.clientWidth < 620 ? 56 : Math.min(88, Math.max(64, Math.floor(screen.clientWidth / 8.4)));
+  return screen.clientWidth < 620 ? 56 : Math.min(140, Math.max(72, Math.floor(screen.clientWidth / 9)));
 }
 
 function put(grid, x, y, char, color, z = 0) {
@@ -82,12 +82,12 @@ function render(now) {
     const radius = spread * (.55 + (i % 3) * .13);
     const x3 = Math.sin(arc) * radius;
     const z3 = Math.cos(arc) * radius;
-    const y3 = 7 - Math.sin(ratio * Math.PI) * 8 - (i % 3) * 1.2;
+    const y3 = 3 + Math.sin(ratio * Math.PI) * 11 + (i % 3) * 1.2;
     const xr = x3 * Math.cos(angle) - z3 * Math.sin(angle);
     const depth = z3 * Math.cos(angle) + x3 * Math.sin(angle);
     const sway = Math.sin(t * 1.3 + i * 1.7) * (1 + i / flowerCount);
-    const fx = Math.round(cx + (xr + sway) * bloom / 8);
-    const fy = Math.round(base - y3 * bloom * .62);
+    const fx = Math.round(cx + (xr + sway) * bloom);
+    const fy = Math.round(base - y3 * bloom * .9);
     line(grid, cx + Math.round(Math.sin(t * .8) * 2), base + 1, fx, fy + 2, '|', theme.green, depth);
     if (i % 2 === 0) put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), '/', theme.green, depth + .1);
     drawFlower(grid, fx, fy, i % 3 === 0 ? 4 : 3, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
