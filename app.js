@@ -16,7 +16,7 @@ const speedValue = document.querySelector('#speed-value');
 const shareStatus = document.querySelector('#share-status');
 const shareLink = document.querySelector('#share-link');
 const shareLabel = document.querySelector('#share-link-label');
-const worker = new Worker('renderer-worker.js?v=20261119g', { type: 'module' });
+const worker = new Worker('renderer-worker.js?v=20261119h', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
@@ -191,7 +191,7 @@ function syncSceneControls() {
   screen.setAttribute('aria-label', `Animated ${sceneNames[state.scene]} ASCII scene; scroll to view when zoomed`);
   terminalTitle.textContent = state.scene === 'bouquet'
     ? `Flower Bouquet — Python bouquet3d.py — ${state.detail === 'detailed' ? '300×90' : '212×53'}`
-    : `${sceneNames[state.scene]} — ASCII scene`;
+    : `${sceneNames[state.scene]} — ASCII scene — 300×90`;
 }
 sceneSelect.addEventListener('change', () => {
   state.scene = sceneSelect.value;

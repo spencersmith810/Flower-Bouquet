@@ -1,9 +1,10 @@
 /* Character-grid animations. All scenes return the same ANSI format as bouquet3d.py. */
 (function () {
   const W = 110, H = 38;
-  const dimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 }
+  const layoutDimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 }
     : ['tree', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
       ? { width: 150, height: 50 } : { width: W, height: H };
+  const dimensions = () => ({ width: 300, height: 90 });
   const palettes = {
     spring: [218, 225, 211, 114], summer: [34, 71, 77, 114],
     autumn: [130, 166, 172, 214], winter: [250, 254, 231, 117],
@@ -12,14 +13,19 @@
   };
 
   function render(scene, options) {
-    const { width: W, height: H } = dimensions(scene);
+    const { width: W, height: H } = layoutDimensions(scene);
     const t = options.time || 0;
     const rows = Array.from({ length: H }, () => Array.from({ length: W }, () => [' ', 0]));
+    const labels = [];
     const put = (x, y, char, color = 255) => {
       x = Math.round(x); y = Math.round(y);
       if (x >= 0 && x < W && y >= 0 && y < H) rows[y][x] = [char, color];
     };
-    const text = (x, y, str, color = 255) => [...str].forEach((ch, i) => { if (ch !== ' ') put(x + i, y, ch, color); });
+    const text = (x, y, str, color = 255) => {
+      // Keep scene labels readable instead of stretching each letter with the artwork.
+      if (/[A-Za-z]{3}/.test(str)) { labels.push({ x, y, str, color }); return; }
+      [...str].forEach((ch, i) => { if (ch !== ' ') put(x + i, y, ch, color); });
+    };
     const line = (x1, y1, x2, y2, char, color) => {
       const steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1), 1);
       for (let i = 0; i <= steps; i++) put(x1 + (x2 - x1) * i / steps, y1 + (y2 - y1) * i / steps, char, color);
@@ -148,7 +154,7 @@
       line(29, 25, 81, 25, '_', 255); tree(54, 24, .48, 'winter');
       text(62, 22, '/\\', 230); text(60, 23, '/__\\', 230); text(60, 24, '|[]|', 180);
       snow(90, true); text(31, 29, '\\________________________________________________/', 110);
-      text(35, 30, '|              WINTER GLOBE              |', 110);
+      put(35, 30, '|', 110); put(76, 30, '|', 110); text(50, 30, 'WINTER GLOBE', 110);
       text(35, 31, '|________________________________________|', 110);
     } else if (scene === 'aquarium') {
       const water = options.waterColor === 'teal' ? [23, 30, 37, 44] : options.waterColor === 'purple'
@@ -362,10 +368,41 @@
       text(4, 3, 'NIGHT SKY / MOUNTAINS', 250);
     }
 
-    const message = Array.from(options.message || '');
-    const start = Math.max(0, Math.floor((W - message.length) / 2));
-    message.slice(0, W).forEach((ch, i) => put(start + i, H - 2, ch, 218));
-    return '\x1b[H' + rows.map(row => {
+    // Preserve each scene's proportions while expanding it onto the shared 300×90 grid.
+    const output = dimensions(scene);
+    const enlarged = Array.from({ length: output.height }, (_, y) =>
+      Array.from({ length: output.width }, (_, x) => rows[Math.floor(y * H / output.height)][Math.floor(x * W / output.width)]));
+    const putFine = (x, y, ch, color, onlyBlank = false) => {
+      x = Math.round(x); y = Math.round(y);
+      if (x >= 0 && x < output.width && y >= 0 && y < output.height && (!onlyBlank || enlarged[y][x][0] === ' ')) {
+        enlarged[y][x] = [ch, color];
+      }
+    };
+    // Add independent fine particles, so the larger grid adds detail beyond enlarged outlines.
+    if (['space', 'solar', 'fireworks', 'nightsky'].includes(scene)) {
+      for (let i = 0; i < 90; i++) putFine(hash(i + 4100) * output.width, hash(i + 4200) * 65,
+        Math.sin(t * 1.3 + i) > .9 ? '*' : '.', i % 4 ? 244 : 229, true);
+    } else if (scene === 'rain' || (scene === 'tree' && season === 'winter')) {
+      for (let i = 0; i < 100; i++) {
+        const x = (hash(i + 4300) * output.width + t * (scene === 'rain' ? 4 : 1)) % output.width;
+        const y = (hash(i + 4400) * 80 + t * (scene === 'rain' ? 12 : 3)) % 80;
+        putFine(x, y, scene === 'rain' ? '/' : '.', scene === 'rain' ? 67 : 255, true);
+      }
+    } else if (scene === 'aquarium') {
+      for (let i = 0; i < 35; i++) {
+        const x = 15 + hash(i + 4500) * 270 + Math.sin(t + i);
+        const y = 8 + ((hash(i + 4600) * 65 - t * (2 + i % 3) + 10000) % 65);
+        putFine(x, y, i % 3 ? '.' : 'o', options.waterColor === 'teal' ? 44 : options.waterColor === 'purple' ? 141 : 75, true);
+      }
+    }
+    for (const label of labels) {
+      const x = Math.round(label.x * output.width / W), y = Math.round(label.y * output.height / H);
+      Array.from(label.str).forEach((ch, i) => putFine(x + i, y, ch, label.color));
+    }
+    const message = Array.from(options.message || '').slice(0, output.width);
+    const start = Math.max(0, Math.floor((output.width - message.length) / 2));
+    message.forEach((ch, i) => putFine(start + i, output.height - 2, ch, 218));
+    return '\x1b[H' + enlarged.map(row => {
       let last = -1, out = '';
       for (const [char, color] of row) {
         if (char !== ' ' && color !== last) { out += `\x1b[38;5;${color}m`; last = color; }

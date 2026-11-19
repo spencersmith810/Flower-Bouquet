@@ -117,7 +117,10 @@ test('all scenes produce distinct animated character grids', () => {
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
   for (let i = 0; i < frames.length; i++) {
-    assert.equal(frames[i].split('\n').length, scenes.dimensions(names[i]).height);
+    assert.deepEqual({ ...scenes.dimensions(names[i]) }, { width: 300, height: 90 });
+    const lines = frames[i].replace(/\x1b\[[0-9;]*[mH]/g, '').split('\n');
+    assert.equal(lines.length, 90, names[i]);
+    for (const line of lines) assert.equal([...line].length, 300, names[i]);
     assert.match(frames[i], /Hello/);
   }
   for (const scene of names) {
@@ -147,10 +150,10 @@ test('aquarium uses a larger grid with moving, detailed fish', () => {
   const frame = scenes.render('aquarium', { time: 3, waterColor: 'teal', fishColor: 'coral' });
   const plain = frame.replace(/\x1b\[[0-9;]*[mH]/g, '');
   const lines = plain.split('\n');
-  assert.equal(lines.length, 52);
-  assert.equal(lines[0].length, 164);
+  assert.equal(lines.length, 90);
+  assert.equal(lines[0].length, 300);
   assert.match(plain, /AQUARIUM/);
-  assert.match(plain, /\(o\)|[()<>]o[()<>]/);
+  assert.match(plain, /\(+o+\)+|[()<>]+o+[()<>]+/);
   assert.notEqual(frame, scenes.render('aquarium', { time: 4, waterColor: 'teal', fishColor: 'coral' }));
 });
 
