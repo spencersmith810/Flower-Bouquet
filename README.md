@@ -2,7 +2,9 @@
 
 ## Browser version
 
-The web version uses the same Python renderer as the terminal version. It includes themed bouquets, an editable message, pause/resume, speed controls, and keyboard navigation. It loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
+The web version uses the same Python renderer as the terminal version. Choose a theme, edit the message, adjust the speed, and use **Share Bouquet** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+
+Use **+ Zoom** and scroll to inspect the bouquet on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. It loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 
 To preview it locally:
 
@@ -11,6 +13,17 @@ python3 -m http.server 8000
 ```
 
 Then visit <http://localhost:8000>.
+
+Run the checks with:
+
+```bash
+python3 -m unittest discover -s tests
+node --test tests/browser.test.cjs
+```
+
+The Python checks need no additional packages. The JavaScript checks require Node.js.
+
+The original terminal bouquet was created by [Alish Sharma](https://github.com/alishsharma17/Ascii-Flower-Bouquet-). The included MIT license retains the original copyright notice.
 
 ## Tips
 

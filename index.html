@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="An animated ASCII flower bouquet rendered in your browser.">
   <title>Flower Bouquet</title>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261119b">
 </head>
 <body>
   <main class="shell">
@@ -22,22 +22,33 @@
     <section class="terminal-window" aria-label="Animated flower bouquet terminal">
       <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">Flower Bouquet — Python bouquet3d.py — 213×54</span></div>
       <p id="render-status" role="status">Loading the Python renderer…</p>
-      <pre id="screen" aria-label="Animated ASCII flower bouquet" aria-live="off"></pre>
+      <pre id="screen" tabindex="0" aria-label="Animated ASCII flower bouquet; scroll to view when zoomed" aria-live="off"></pre>
     </section>
 
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
         <button id="pause" type="button" aria-pressed="false">PAUSE</button>
-        <button id="slower" type="button">- SPEED</button>
-        <button id="faster" type="button">+ SPEED</button>
-        <button id="colors" type="button">CYCLE COLORS</button>
+        <button id="slower" type="button" aria-label="Decrease rotation speed">− SPEED</button>
+        <output id="speed-value" aria-live="polite">0.6</output>
+        <button id="faster" type="button" aria-label="Increase rotation speed">+ SPEED</button>
+        <label for="theme">THEME</label>
+        <select id="theme" aria-label="Bouquet theme">
+          <option>Original</option><option>Romantic</option><option>Sunset</option>
+          <option>Lavender Garden</option><option>Spring</option><option>Midnight</option><option>Monochrome</option>
+        </select>
         <button id="hearts" type="button">ADD HEARTS</button>
-        <button id="surprise" type="button" class="accent">NEXT THEME</button>
+        <button id="zoom-out" type="button">− ZOOM</button>
+        <button id="zoom-in" type="button">+ ZOOM</button>
+        <button id="zoom-fit" type="button">FIT</button>
+        <button id="fullscreen" type="button">FULL SCREEN</button>
+        <button id="share" type="button" class="accent">SHARE BOUQUET</button>
       </div>
-      <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed <kbd>C</kbd> colors <kbd>H</kbd> hearts <kbd>←</kbd>/<kbd>→</kbd> themes</p>
+      <p id="share-status" class="keyboard-hint" role="status"></p>
+      <label id="share-link-label" hidden>SHARE LINK <input id="share-link" type="text" readonly></label>
+      <p class="keyboard-hint">KEYBOARD: <kbd>P</kbd> pause <kbd>+</kbd>/<kbd>-</kbd> speed <kbd>C</kbd> next theme <kbd>H</kbd> hearts <kbd>←</kbd>/<kbd>→</kbd> themes. On small screens, zoom in and scroll to explore.</p>
     </section>
   </main>
-  <script src="app.js"></script>
+  <script src="app.js?v=20261119b"></script>
 </body>
 </html>

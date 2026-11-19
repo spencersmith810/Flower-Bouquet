@@ -2,12 +2,36 @@ const screen = document.querySelector('#screen');
 const messageInput = document.querySelector('#message');
 const pauseButton = document.querySelector('#pause');
 const status = document.querySelector('#render-status');
-const worker = new Worker('renderer-worker.js', { type: 'module' });
+const themeSelect = document.querySelector('#theme');
+const speedValue = document.querySelector('#speed-value');
+const shareStatus = document.querySelector('#share-status');
+const shareLink = document.querySelector('#share-link');
+const shareLabel = document.querySelector('#share-link-label');
+const worker = new Worker('renderer-worker.js?v=20261119b', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
-const state = { paused: false, speed: 0.6, theme: 0, heartCount: 18 };
+const params = new URLSearchParams(window.location.search);
+function boundedNumber(value, fallback, min, max) {
+  if (value === null || value.trim() === '') return fallback;
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : fallback;
+}
+const selectedTheme = themeNames.indexOf(params.get('theme'));
+const state = {
+  paused: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+  speed: boundedNumber(params.get('speed'), 0.6, 0.1, 3),
+  theme: Math.max(0, selectedTheme),
+  heartCount: Math.round(boundedNumber(params.get('hearts'), 18, 0, 100)),
+};
+if (params.has('message')) messageInput.value = params.get('message').slice(0, 42);
+themeSelect.selectedIndex = state.theme;
+speedValue.textContent = state.speed.toFixed(1);
+pauseButton.textContent = state.paused ? 'RESUME' : 'PAUSE';
+pauseButton.setAttribute('aria-pressed', String(state.paused));
 let ready = false;
 let inFlight = false;
-let lastRequest = 0;
+let needsFrame = true;
+let resetClock = false;
+let timer = null;
 
 // Python emits ANSI 256-color codes; translate them into browser colors.
 function terminalColor(code) {
@@ -42,22 +66,35 @@ function displayFrame(frame) {
   screen.innerHTML = html + escapeText(frame.slice(last));
 }
 
-function requestFrame(now) {
-  if (ready && !inFlight && now - lastRequest >= 1000 / 24) {
+function scheduleFrame(delay = 0) {
+  if (!ready || inFlight || timer !== null || (state.paused && !needsFrame)) return;
+  timer = setTimeout(() => {
+    timer = null;
+    if (!ready || inFlight || (state.paused && !needsFrame)) return;
     inFlight = true;
-    lastRequest = now;
-    worker.postMessage({ type: 'frame', timestamp: now, ...state, message: messageInput.value });
-  }
-  requestAnimationFrame(requestFrame);
+    needsFrame = false;
+    worker.postMessage({ type: 'frame', timestamp: performance.now(), ...state,
+      message: messageInput.value, resetClock });
+    resetClock = false;
+  }, delay);
+}
+
+function redraw() {
+  needsFrame = true;
+  scheduleFrame();
 }
 
 worker.onmessage = ({ data }) => {
-  if (data.type === 'ready') {
+  if (data.type === 'loading') {
+    status.textContent = data.message;
+  } else if (data.type === 'ready') {
     ready = true;
     status.textContent = '';
+    scheduleFrame();
   } else if (data.type === 'frame') {
     displayFrame(data.frame);
     inFlight = false;
+    scheduleFrame(state.paused ? 0 : 1000 / 24);
   } else if (data.type === 'error') {
     ready = false;
     status.textContent = `Unable to start the bouquet: ${data.message}. Refresh to try again.`;
@@ -65,21 +102,73 @@ worker.onmessage = ({ data }) => {
 };
 worker.onerror = () => { status.textContent = 'Unable to load the Python renderer. Check your connection and refresh.'; };
 worker.postMessage({ type: 'init' });
-requestAnimationFrame(requestFrame);
 
 function changeTheme(direction) {
   state.theme = (state.theme + direction + themeNames.length) % themeNames.length;
+  themeSelect.selectedIndex = state.theme;
+  redraw();
 }
 pauseButton.addEventListener('click', () => {
   state.paused = !state.paused;
+  resetClock = true;
   pauseButton.textContent = state.paused ? 'RESUME' : 'PAUSE';
   pauseButton.setAttribute('aria-pressed', String(state.paused));
+  redraw();
 });
-document.querySelector('#slower').addEventListener('click', () => { state.speed = Math.max(0.1, state.speed - 0.1); });
-document.querySelector('#faster').addEventListener('click', () => { state.speed = Math.min(3, state.speed + 0.1); });
-document.querySelector('#colors').addEventListener('click', () => changeTheme(1));
-document.querySelector('#hearts').addEventListener('click', () => { state.heartCount = Math.min(100, state.heartCount + 3); });
-document.querySelector('#surprise').addEventListener('click', () => changeTheme(1));
+function changeSpeed(delta) {
+  state.speed = Math.round(Math.min(3, Math.max(0.1, state.speed + delta)) * 10) / 10;
+  speedValue.textContent = state.speed.toFixed(1);
+  redraw();
+}
+document.querySelector('#slower').addEventListener('click', () => changeSpeed(-0.1));
+document.querySelector('#faster').addEventListener('click', () => changeSpeed(0.1));
+document.querySelector('#hearts').addEventListener('click', () => { state.heartCount = Math.min(100, state.heartCount + 3); redraw(); });
+themeSelect.addEventListener('change', () => { state.theme = themeSelect.selectedIndex; redraw(); });
+messageInput.addEventListener('input', redraw);
+
+let zoom = 10;
+let autoFit = true;
+function fitScreen(minimum = 7) {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  context.font = '16px Menlo, Monaco, Consolas, monospace';
+  const cellWidth = context.measureText('M').width / 16;
+  zoom = Math.min(18, Math.max(minimum, (screen.clientWidth - 32) / (212 * cellWidth)));
+  screen.style.fontSize = `${zoom}px`;
+}
+document.querySelector('#zoom-in').addEventListener('click', () => { autoFit = false; zoom = Math.min(24, zoom + 1); screen.style.fontSize = `${zoom}px`; });
+document.querySelector('#zoom-out').addEventListener('click', () => { autoFit = false; zoom = Math.max(3, zoom - 1); screen.style.fontSize = `${zoom}px`; });
+document.querySelector('#zoom-fit').addEventListener('click', () => { autoFit = true; fitScreen(3); });
+window.addEventListener('resize', () => { if (autoFit) fitScreen(); });
+document.addEventListener('fullscreenchange', () => { if (autoFit) fitScreen(); });
+document.querySelector('#fullscreen').addEventListener('click', async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await document.querySelector('.terminal-window').requestFullscreen();
+  } catch {
+    shareStatus.textContent = 'Full screen is unavailable in this browser.';
+  }
+});
+fitScreen();
+
+document.querySelector('#share').addEventListener('click', async () => {
+  const url = new URL(window.location.href);
+  url.search = '';
+  url.hash = '';
+  url.searchParams.set('message', messageInput.value);
+  url.searchParams.set('theme', themeNames[state.theme]);
+  url.searchParams.set('speed', state.speed.toFixed(1));
+  url.searchParams.set('hearts', String(state.heartCount));
+  shareLink.value = url.toString();
+  shareLabel.hidden = false;
+  try {
+    await navigator.clipboard.writeText(shareLink.value);
+    shareStatus.textContent = 'Link copied. Anyone with the link can see this message and bouquet settings.';
+  } catch {
+    shareStatus.textContent = 'Copy the link below to share your message and bouquet settings.';
+    shareLink.select();
+  }
+});
 document.addEventListener('keydown', event => {
   if (event.target.matches('input, button, textarea, select')) return;
   const key = event.key.toLowerCase();

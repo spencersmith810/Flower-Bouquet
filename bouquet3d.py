@@ -245,7 +245,8 @@ def update_hearts(hearts, dt):
 
 
 def render(scene, t, cols, rows, hearts, speed=SPIN_SPEED, color_mode=0,
-           exit_progress=0.0, hint="P: pause  +/-: speed  C: colors  H: hearts  Q: quit"):
+           exit_progress=0.0, hint="P: pause  +/-: speed  C: colors  H: hearts  Q: quit",
+           rotation=None):
     pts, flowers, babies, sparkles = scene
     chars = [[" "] * cols for _ in range(rows)]
     colors = [[0] * cols for _ in range(rows)]
@@ -257,7 +258,7 @@ def render(scene, t, cols, rows, hearts, speed=SPIN_SPEED, color_mode=0,
     cx = cols / 2
     cy = 1 + 0.78 * scale
 
-    ang = t * speed
+    ang = t * speed if rotation is None else rotation
     ca, sa = math.cos(ang), math.sin(ang)
     ct, st = math.cos(TILT), math.sin(TILT)
     bloom = min(1.0, t / 2.0)
@@ -467,6 +468,7 @@ def main():
     hearts = []
     paused = False
     animation_time = 0.0
+    rotation = 0.0
     closing = False
     close_started = None
     old_terminal = None
@@ -499,6 +501,7 @@ def main():
                 close_started = now
             if not paused and not closing:
                 animation_time += dt
+                rotation += speed * dt
             if closing and close_started is None:
                 close_started = now
             size = shutil.get_terminal_size((80, 30))
@@ -510,7 +513,8 @@ def main():
             exit_progress = min(1.0, (now - close_started) / 1.0) if closing else 0.0
             sys.stdout.write(render(scene, animation_time, cols, rows, hearts,
                                     speed, color_mode, exit_progress,
-                                    f"P: pause  +/-: speed  C: {COLOR_THEMES[color_mode]['name']}  H: hearts  Q: quit"))
+                                    f"P: pause  +/-: speed  C: {COLOR_THEMES[color_mode]['name']}  H: hearts  Q: quit",
+                                    rotation=rotation))
             sys.stdout.flush()
             if closing and exit_progress >= 1.0:
                 break
@@ -527,7 +531,8 @@ def main():
             cols, rows = max(20, size.columns - 1), max(12, size.lines - 1)
             sys.stdout.write(render(scene, animation_time, cols, rows, hearts,
                                     speed, color_mode, progress,
-                                    f"P: pause  +/-: speed  C: {COLOR_THEMES[color_mode]['name']}  H: hearts  Q: quit"))
+                                    f"P: pause  +/-: speed  C: {COLOR_THEMES[color_mode]['name']}  H: hearts  Q: quit",
+                                    rotation=rotation))
             sys.stdout.flush()
             time.sleep(1 / FPS)
     finally:

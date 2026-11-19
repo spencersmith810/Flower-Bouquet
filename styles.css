@@ -27,7 +27,8 @@ h1 em { color: var(--accent); font-style: normal; font-weight: 700; }
 .lede { max-width: 340px; margin: 0 0 4px; color: var(--muted); font-size: .9rem; line-height: 1.55; }
 .message-row { display: grid; gap: 8px; min-width: min(100%, 265px); }
 .message-row label { color: var(--muted); font-size: .7rem; letter-spacing: .12em; }
-input { border: 1px solid var(--line); border-radius: 2px; outline: none; color: var(--ink); background: #0e1511; font: inherit; }
+input, select { border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: #0e1511; font: inherit; }
+select { padding: 8px; font-size: 12px; }
 .message-row input { width: 100%; padding: 11px 12px; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(142,226,142,.15); }
 .terminal-window { overflow: hidden; border: 1px solid #354239; border-radius: 3px; background: #090c0a; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
@@ -36,13 +37,19 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(142,226,14
 .terminal-title { flex: 1; text-align: center; }
 #render-status { margin: 0; padding: 12px 18px; color: #d7dbe2; background: #252d3b; font-size: 12px; }
 #render-status:empty { display: none; }
-#screen { margin: 0; padding: 22px 12px; overflow-x: auto; color: #d7dbe2; background: #1e2530; font: clamp(5px, .70vw, 13px)/1.15 Menlo, Monaco, Consolas, monospace; letter-spacing: 0; white-space: pre; }
+#screen { margin: 0; padding: 22px 12px; overflow: auto; color: #d7dbe2; background: #1e2530; font: 10px/1.15 Menlo, Monaco, Consolas, monospace; letter-spacing: 0; white-space: pre; }
+.terminal-window:fullscreen { display: flex; flex-direction: column; background: #1e2530; }
+.terminal-window:fullscreen #screen { flex: 1; }
 .controls { display: grid; gap: 14px; padding: 18px 0 0; }
 .theme-list { display: none; }
 button { border: 1px solid var(--line); border-radius: 2px; padding: 9px 12px; color: var(--muted); background: #101711; cursor: pointer; font: 700 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .04em; transition: .15s ease; }
 button:hover, button:focus-visible { border-color: var(--accent); color: var(--ink); background: #17231a; }
 button.accent { border-color: var(--accent); color: #0a0d0b; background: var(--accent); }
 .control-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.control-row label, .control-row output { color: var(--muted); font-size: 12px; }
+#share-link-label { color: var(--muted); font-size: 12px; }
+#share-link-label:not([hidden]) { display: grid; gap: 6px; }
+#share-link { width: 100%; padding: 8px; }
 .keyboard-hint { margin: 0; color: var(--muted); font-size: .72rem; }
 kbd { border: 1px solid #405047; border-bottom-width: 2px; border-radius: 2px; padding: 2px 5px; color: var(--ink); background: #121a14; }
 
@@ -51,7 +58,7 @@ kbd { border: 1px solid #405047; border-bottom-width: 2px; border-radius: 2px; p
   .intro { display: block; }
   .lede { margin-top: 22px; }
   .message-row { margin-top: 20px; }
-  #screen { padding: 18px 8px; font-size: 5px; }
+  #screen { padding: 18px 8px; }
   .terminal-title { font-size: 10px; }
   .dot { width: 10px; height: 10px; }
 }
