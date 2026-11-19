@@ -34,7 +34,7 @@ function setTheme(next) {
 }
 
 function fit() {
-  return screen.clientWidth < 620 ? 72 : Math.min(190, Math.max(96, Math.floor(screen.clientWidth / 8.5)));
+  return screen.clientWidth < 620 ? 90 : 213;
 }
 
 function put(grid, x, y, char, color, z = 0) {
@@ -78,7 +78,7 @@ function drawFlower(grid, x, y, size, color, center, tulip, z) {
 
 function render(now) {
   const cols = fit();
-  const rows = window.innerWidth < 620 ? 32 : 46;
+  const rows = window.innerWidth < 620 ? 32 : 54;
   const theme = themes[themeIndex];
   const grid = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ char: ' ', color: '', z: -Infinity })));
   if (!paused) elapsed += Math.min(.05, (now - last) / 1000) * speed;
@@ -88,7 +88,7 @@ function render(now) {
   const angle = t;
   const cx = Math.floor(cols / 2);
   const base = rows - 8;
-  const spread = Math.min(cols * .30, 48);
+  const spread = Math.min(cols * .32, 68);
 
   for (let i = 0; i < flowerCount; i += 1) {
     const ratio = flowerCount === 1 ? .5 : i / (flowerCount - 1);
@@ -96,7 +96,7 @@ function render(now) {
     const radius = spread * (.50 + (i % 4) * .12);
     const x3 = Math.sin(arc) * radius;
     const z3 = Math.cos(arc) * radius;
-    const y3 = 8 + Math.sin(ratio * Math.PI) * 18 - (i % 3) * 1.8;
+    const y3 = 9 + Math.sin(ratio * Math.PI) * 25 - (i % 3) * 1.8;
     const xr = x3 * Math.cos(angle) - z3 * Math.sin(angle);
     const depth = z3 * Math.cos(angle) + x3 * Math.sin(angle);
     const sway = Math.sin(t * 1.3 + i * 1.7) * (1.5 + i / flowerCount);
@@ -107,7 +107,7 @@ function render(now) {
       put(grid, Math.round((cx + fx) / 2), Math.round((base + fy) / 2), i % 4 ? '%' : '*', theme.green, depth + .1);
       put(grid, Math.round((cx + fx) / 2) + 2, Math.round((base + fy) / 2) + 1, '\\', theme.green, depth + .1);
     }
-    drawFlower(grid, fx, fy, i % 4 === 0 ? 10 : 8, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
+    drawFlower(grid, fx, fy, i % 4 === 0 ? 9 : 7, theme.flowers[i % theme.flowers.length], theme.center, i % 5 === 0, depth + 2);
   }
 
   // Dense filler branches and the folded paper wrap.
