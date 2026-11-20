@@ -13,6 +13,7 @@
   };
 
   function render(scene, options) {
+    if (options.detail !== 'classic') return window.DetailedScenes.render(scene, options);
     const { width: W, height: H } = layoutDimensions(scene);
     const t = options.time || 0;
     const rows = Array.from({ length: H }, () => Array.from({ length: W }, () => [' ', 0]));

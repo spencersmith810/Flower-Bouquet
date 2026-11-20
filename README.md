@@ -8,7 +8,7 @@ Earth's land mask is derived from the public-domain [Natural Earth 1:110m land d
 
 The bouquet uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. The other scenes run directly in JavaScript using a character grid.
 
-All scenes use a 300×90 character grid by default. The bouquet's Classic option uses 212×53; Detailed uses the larger grid for finer petals while keeping visible ASCII characters. The other scenes expand their existing artwork to fit and add finer background particles where appropriate. Larger grids may run more slowly on some devices.
+All scenes use a 300×90 character grid by default. Fine detail draws the scenes directly at that resolution; Classic keeps the earlier artwork. The bouquet's Classic option uses 212×53, while Fine detail uses 300×90. Select the detail level for any scene using the Detail control. Larger grids may run more slowly on some devices.
 
 The aquarium includes multi-line fish, plants, coral, rocks, and sand. Choose water and fish palettes using its controls.
 

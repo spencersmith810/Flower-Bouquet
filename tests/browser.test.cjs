@@ -46,8 +46,10 @@ function setup(search = '') {
   };
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const scenesSource = fs.readFileSync(path.join(__dirname, '..', 'scenes.js'), 'utf8');
+  const detailedSource = fs.readFileSync(path.join(__dirname, '..', 'detailed-scenes.js'), 'utf8');
   const earthSource = fs.readFileSync(path.join(__dirname, '..', 'earth-mask.js'), 'utf8');
   vm.runInNewContext(earthSource, sandbox);
+  vm.runInNewContext(detailedSource, sandbox);
   vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
   return { elements, worker, timers, groups, scenes: window.AsciiScenes, land: window.EARTH_LAND_MASK };
@@ -126,6 +128,30 @@ test('all scenes produce distinct animated character grids', () => {
   for (const scene of names) {
     assert.notEqual(scenes.render(scene, { time: 2 }), scenes.render(scene, { time: 3 }), scene);
   }
+});
+
+test('every scene offers a distinct classic and fine-detail rendering', async () => {
+  const { scenes, elements } = setup('?scene=aquarium&detail=classic');
+  for (const scene of ['tree', 'snowglobe', 'aquarium', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky']) {
+    const classic = scenes.render(scene, { time: 2, detail: 'classic' });
+    const detailed = scenes.render(scene, { time: 2, detail: 'detailed' });
+    assert.notEqual(classic, detailed, scene);
+    for (const frame of [classic, detailed]) {
+      const lines = frame.replace(/\x1b\[[0-9;]*[mH]/g, '').split('\n');
+      assert.equal(lines.length, 90, scene);
+      assert.ok(lines.every(line => [...line].length === 300), scene);
+    }
+  }
+  elements['#detail'].value = 'detailed';
+  elements['#detail'].callbacks.change();
+  await elements['#share'].click();
+  assert.equal(new URL(elements['#share-link'].value).searchParams.get('detail'), 'detailed');
+});
+
+test('fine-detail globe shake changes snow at the same moment', () => {
+  const { scenes } = setup();
+  assert.notEqual(scenes.render('snowglobe', { time: 10, shakeTime: 9 }),
+    scenes.render('snowglobe', { time: 10 }));
 });
 
 test('Earth rotates mapped land and the solar system identifies its planets', () => {
