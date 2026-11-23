@@ -19,10 +19,11 @@ function setup(search = '') {
     };
   }
   elements['.terminal-title'] = { textContent: '' };
-  const groups = ['bouquet', 'aquarium', 'fireworks']
+  const groups = ['bouquet', 'fireworks']
     .map(name => ({ dataset: { for: name }, hidden: false }));
   let worker;
   const timers = [];
+  const clock = { now: 100 };
   class WorkerMock {
     constructor(url) { this.url = url; this.messages = []; worker = this; }
     postMessage(message) { this.messages.push(message); }
@@ -41,7 +42,7 @@ function setup(search = '') {
   const sandbox = {
     document, window, Worker: WorkerMock, URL, URLSearchParams,
     navigator: { clipboard: { writeText: async () => {} } },
-    performance: { now: () => 100 },
+    performance: { now: () => clock.now },
     setTimeout: callback => { timers.push(callback); return timers.length; },
   };
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
@@ -56,7 +57,7 @@ function setup(search = '') {
   vm.runInNewContext(detailedSource, sandbox);
   vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
-  return { elements, worker, timers, groups, window, scenes: window.AsciiScenes, detailed: window.DetailedScenes, land: window.EARTH_LAND_MASK };
+  return { elements, worker, timers, clock, groups, window, scenes: window.AsciiScenes, detailed: window.DetailedScenes, land: window.EARTH_LAND_MASK };
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
@@ -119,7 +120,7 @@ test('choosing a flower style and detail level reaches the renderer', () => {
 
 test('all scenes produce distinct animated character grids', () => {
   const { scenes } = setup();
-  const names = ['aquarium', 'earth-day-night', 'solar', 'fireworks'];
+  const names = ['earth-day-night', 'earth-realistic', 'earth-compare', 'solar', 'fireworks'];
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
   for (let i = 0; i < frames.length; i++) {
@@ -135,8 +136,8 @@ test('all scenes produce distinct animated character grids', () => {
 });
 
 test('every scene offers a distinct classic and fine-detail rendering', async () => {
-  const { scenes, elements } = setup('?scene=aquarium&detail=classic');
-  for (const scene of ['aquarium', 'earth-day-night', 'solar', 'fireworks']) {
+  const { scenes, elements } = setup('?scene=earth-day-night&detail=classic');
+  for (const scene of ['earth-day-night', 'earth-realistic', 'earth-compare', 'solar', 'fireworks']) {
     const classic = scenes.render(scene, { time: 2, detail: 'classic' });
     const detailed = scenes.render(scene, { time: 2, detail: 'detailed' });
     assert.notEqual(classic, detailed, scene);
@@ -169,17 +170,92 @@ test('Earth rotates mapped land and the solar system identifies its planets', ()
   }
 });
 
+test('Earth is tilted and the Sun and Moon follow the shared animation clock', () => {
+  const { detailed } = setup();
+  const tilt = 23.4 * Math.PI / 180;
+  const north = detailed.earthCoordinates(Math.sin(tilt), -Math.cos(tilt), 0, 0);
+  assert.ok(Math.abs(north.latitude - Math.PI / 2) < 1e-7);
+  const start = detailed.earthSky(0), later = detailed.earthSky(10);
+  assert.notEqual(start.sunX, later.sunX);
+  assert.notEqual(start.moonX, later.moonX);
+  assert.notEqual(detailed.earthSunlight(-.7, .7, 0, 0), detailed.earthSunlight(-.7, .7, 0, 10));
+
+  const { elements, timers, clock, scenes } = setup('?scene=earth-day-night');
+  const times = [];
+  scenes.render = (scene, options) => { times.push(options.time); return ''; };
+  timers.shift()();
+  clock.now += 100;
+  timers.shift()();
+  assert.ok(Math.abs(times.at(-1) - .1) < 1e-9);
+  elements['#faster'].click();
+  clock.now += 100;
+  timers.shift()();
+  assert.ok(Math.abs(times.at(-1) - (.1 + .1 * .7 / .6)) < 1e-9);
+  elements['#pause'].click();
+  clock.now += 100;
+  timers.shift()();
+  assert.equal(times.at(-1), times.at(-2));
+});
+
+test('realistic Earth preserves day, year, and lunar timing', () => {
+  const { detailed } = setup();
+  const first = detailed.realisticEarthSystem(0);
+  const afterDay = detailed.realisticEarthSystem(42);
+  const afterYear = detailed.realisticEarthSystem(42 * 365.2422);
+  const afterMoonOrbit = detailed.realisticEarthSystem(42 * 27.32166);
+  assert.equal(afterDay.days, 1);
+  assert.ok(Math.abs(afterYear.yearAngle - 2 * Math.PI) < 1e-9);
+  assert.ok(Math.abs(afterMoonOrbit.moonAngle + afterMoonOrbit.yearAngle - 2 * Math.PI) < 1e-9);
+  assert.ok(Math.abs(first.illuminated) < 1e-9);
+  const halfSynodicMonth = 1 / (1 / 27.32166 - 1 / 365.2422) / 2;
+  assert.ok(detailed.realisticEarthSystem(42 * halfSynodicMonth).illuminated > .999);
+  const equinox = detailed.realisticEarthCoordinates(0, 0, 1, first);
+  const oneDayLater = detailed.realisticEarthCoordinates(0, 0, 1, afterDay);
+  assert.ok(Math.abs(Math.sin(equinox.longitude - oneDayLater.longitude)) < .003);
+});
+
+test('satellite follows a prograde orbit and passes behind Earth', () => {
+  const { detailed } = setup();
+  const period = 42 * 92 / 1440;
+  const first = detailed.satelliteOrbit(0, true);
+  const half = detailed.satelliteOrbit(period / 2, true);
+  const complete = detailed.satelliteOrbit(period, true);
+  assert.ok(Math.abs(complete.angle - first.angle + 2 * Math.PI) < 1e-9);
+  assert.ok(first.z * half.z < 0);
+  assert.ok(Math.abs(Math.hypot(first.x, first.y, first.z) - 1.12) < 1e-9);
+  function longitude(time) {
+    const satellite = detailed.satelliteOrbit(time, true);
+    return detailed.realisticEarthCoordinates(satellite.x / 1.12, satellite.y / 1.12,
+      satellite.z / 1.12, detailed.realisticEarthSystem(time)).longitude;
+  }
+  assert.ok(longitude(.01) > longitude(0)); // Eastward relative to Earth's surface
+  assert.notEqual(detailed.satelliteOrbit(0, false).x, detailed.satelliteOrbit(.1, false).x);
+});
+
+test('Earth comparison and realistic view can be shared', async () => {
+  for (const scene of ['earth-compare', 'earth-realistic']) {
+    const { elements, scenes } = setup(`?scene=${scene}`);
+    assert.equal(elements['#scene'].value, scene);
+    const frame = scenes.render(scene, { time: 10, detail: 'detailed', message: 'Hello' });
+    assert.match(frame, scene === 'earth-compare' ? /ORIGINAL EARTH/ : /REALISTIC TIMING/);
+    if (scene === 'earth-compare') assert.match(frame, /REALISTIC EARTH/);
+    assert.match(frame, /Hello/);
+    await elements['#share'].click();
+    assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), scene);
+  }
+});
+
 test('polar land is icy white while polar oceans stay blue', () => {
   const { scenes, window } = setup();
   window.EARTH_NIGHT_LIGHTS = Array.from({ length: 360 }, () => '0'.repeat(720));
-  function cellColor(frame, targetY) {
+  function cellColor(frame, targetX, targetY) {
     let x = 0, y = 0, color = -1;
     for (const token of frame.match(/\x1b\[[0-9;]*[mH]|[^\x1b]/g)) {
       const match = token.match(/^\x1b\[38;5;(\d+)m$/);
       if (match) color = Number(match[1]);
       else if (token === '\n') { x = 0; y++; }
       else if (!token.startsWith('\x1b')) {
-        if (x === 150 && y === targetY) return color;
+        if (x === targetX && y === targetY) return color;
         x++;
       }
     }
@@ -190,9 +266,9 @@ test('polar land is icy white while polar oceans stay blue', () => {
     const land = scenes.render(scene, { detail, time: 0 });
     window.EARTH_LAND_MASK = Array.from({ length: 90 }, () => '0'.repeat(180));
     const ocean = scenes.render(scene, { detail, time: 0 });
-    for (const y of [11, 76]) {
-      assert.ok([250, 255].includes(cellColor(land, y)), `${scene} ${detail} land at ${y}`);
-      assert.ok([24, 75, 67].includes(cellColor(ocean, y)), `${scene} ${detail} ocean at ${y}`);
+    for (const [x, y] of [[174, 14], [126, 72]]) {
+      assert.ok([250, 255].includes(cellColor(land, x, y)), `${scene} ${detail} land at ${x},${y}`);
+      assert.ok([24, 75, 67].includes(cellColor(ocean, x, y)), `${scene} ${detail} ocean at ${x},${y}`);
     }
   }
 });
@@ -215,9 +291,9 @@ test('Earth uses geographic terrain colors in both detail modes', () => {
   }
 });
 
-test('previous Earth links open the combined Earth scene', () => {
+test('previous Earth links open the realistic Earth scene', () => {
   for (const scene of ['space', 'earth-night', 'earth-day-night']) {
-    assert.equal(setup(`?scene=${scene}`).elements['#scene'].value, 'earth-day-night');
+    assert.equal(setup(`?scene=${scene}`).elements['#scene'].value, 'earth-realistic');
   }
 });
 
@@ -227,8 +303,8 @@ test('default message is empty and custom messages remain available', () => {
 });
 
 test('day-night Earth shows lights only on the shadow side and can be shared', async () => {
-  const { scenes, elements, window } = setup('?scene=earth-day-night');
-  assert.equal(elements['#scene'].value, 'earth-day-night');
+  const { scenes, elements, window } = setup('?scene=earth-realistic');
+  assert.equal(elements['#scene'].value, 'earth-realistic');
   window.EARTH_NIGHT_LIGHTS = Array.from({ length: 360 }, () => '9'.repeat(720));
   function colorAt(frame, targetX, targetY) {
     let x = 0, y = 0, color = -1;
@@ -256,7 +332,7 @@ test('day-night Earth shows lights only on the shadow side and can be shared', a
     assert.notEqual(frame, scenes.render('earth-day-night', { time: 8, detail }));
   }
   await elements['#share'].click();
-  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'earth-day-night');
+  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'earth-realistic');
 });
 
 test('aquarium uses a larger grid with moving, detailed fish', () => {
@@ -329,16 +405,13 @@ test('aquarium fish stay in separate lanes and wrap outside the tank', () => {
 });
 
 test('scene choice and options round-trip through sharing', async () => {
-  const { elements, groups } = setup('?scene=aquarium&water=teal&fish=cool&fireworks=warm');
-  assert.equal(elements['#scene'].value, 'aquarium');
-  assert.equal(elements['#water-color'].value, 'teal');
-  assert.equal(groups.find(group => group.dataset.for === 'aquarium').hidden, false);
+  const { elements, groups } = setup('?scene=fireworks&fireworks=warm');
+  assert.equal(elements['#scene'].value, 'fireworks');
+  assert.equal(groups.find(group => group.dataset.for === 'fireworks').hidden, false);
   assert.equal(groups.find(group => group.dataset.for === 'bouquet').hidden, true);
   await elements['#share'].click();
   const url = new URL(elements['#share-link'].value);
-  assert.equal(url.searchParams.get('scene'), 'aquarium');
-  assert.equal(url.searchParams.get('water'), 'teal');
-  assert.equal(url.searchParams.get('fish'), 'cool');
+  assert.equal(url.searchParams.get('scene'), 'fireworks');
   assert.equal(url.searchParams.get('fireworks'), 'warm');
 });
 
@@ -366,7 +439,7 @@ test('New York fireworks default to a rainbow over the skyline', () => {
 });
 
 test('links to removed scenes fall back to the bouquet', () => {
-  for (const scene of ['tree', 'snowglobe', 'ocean', 'rain', 'nightsky']) {
+  for (const scene of ['aquarium', 'tree', 'snowglobe', 'ocean', 'rain', 'nightsky']) {
     assert.equal(setup(`?scene=${scene}`).elements['#scene'].value, 'bouquet');
   }
 });

@@ -2,7 +2,7 @@
 (function () {
   const W = 110, H = 38;
   const layoutDimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 }
-    : ['tree', 'earth-day-night', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
+    : ['tree', 'earth-day-night', 'earth-realistic', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
       ? { width: 150, height: 50 } : { width: W, height: H };
   const dimensions = () => ({ width: 300, height: 90 });
   const palettes = {
@@ -12,7 +12,45 @@
     rainbow: [196, 208, 226, 46, 45, 141, 213],
   };
 
+  function compareEarth(options) {
+    const frames = ['earth-day-night', 'earth-realistic'].map(scene => render(scene, { ...options, message: '' }));
+    function cells(frame) {
+      const rows = [[]];
+      let color = 255;
+      for (const token of frame.match(/\x1b\[[0-9;]*[mH]|[^\x1b]/gu)) {
+        const match = token.match(/^\x1b\[38;5;(\d+)m$/);
+        if (match) color = Number(match[1]);
+        else if (token === '\n') rows.push([]);
+        else if (!token.startsWith('\x1b')) rows[rows.length - 1].push([token, color]);
+      }
+      return rows;
+    }
+    const source = frames.map(cells);
+    const output = Array.from({ length: 90 }, () => Array.from({ length: 300 }, () => [' ', 0]));
+    for (let side = 0; side < 2; side++) for (let y = 0; y < 45; y++) for (let x = 0; x < 150; x++) {
+      output[20 + y][side * 150 + x] = source[side][y * 2]?.[x * 2] || [' ', 0];
+    }
+    function label(x, y, text, color) {
+      [...text].forEach((ch, i) => { if (x + i < 300) output[y][x + i] = [ch, color]; });
+    }
+    label(45, 15, 'ORIGINAL EARTH', 250);
+    label(195, 15, 'REALISTIC EARTH', 250);
+    label(18, 70, 'Stylized motion', 244);
+    label(168, 70, 'Relative day / month / year timing', 244);
+    const message = Array.from(options.message || '').slice(0, 300);
+    label(Math.floor((300 - message.length) / 2), 88, message.join(''), 218);
+    return '\x1b[H' + output.map(row => {
+      let last = -1, out = '';
+      for (const [char, color] of row) {
+        if (char !== ' ' && color !== last) { out += `\x1b[38;5;${color}m`; last = color; }
+        out += char;
+      }
+      return out;
+    }).join('\n') + '\x1b[0m';
+  }
+
   function render(scene, options) {
+    if (scene === 'earth-compare') return compareEarth(options);
     if (options.detail !== 'classic') return window.DetailedScenes.render(scene, options);
     const { width: W, height: H } = layoutDimensions(scene);
     const t = options.time || 0;
@@ -268,17 +306,26 @@
       line(left, top, right, top, '=', water[3]); line(left, floor, right, floor, '=', water[3]);
       line(left, top, left, floor, '|', water[3]); line(right, top, right, floor, '|', water[3]);
       text(left + 2, top, '[ AQUARIUM ]', water[3]);
-    } else if (scene === 'earth-day-night') {
+    } else if (scene === 'earth-day-night' || scene === 'earth-realistic') {
       stars(150, 0, 44);
       const cx = 75, cy = 24, rx = 38, ry = 19;
       const land = window.EARTH_LAND_MASK;
+      const realistic = scene === 'earth-realistic';
+      const system = realistic ? window.DetailedScenes.realisticEarthSystem(t) : null;
+      const moonX = realistic ? Math.round(cx + system.moonX * 62) : 0;
+      const moonY = realistic ? Math.round(cy + system.moonY * 21) : 0;
+      const satellite = window.DetailedScenes.satelliteOrbit(t, realistic);
+      const satelliteX = Math.round(cx + satellite.x * rx), satelliteY = Math.round(cy + satellite.y * ry);
+      if (satellite.z < 0) window.DetailedScenes.drawSatellite(put, satelliteX, satelliteY);
+      if (realistic && system.moonZ < 0) window.DetailedScenes.drawRealisticMoon(put, moonX, moonY, 4, 2, system);
       // Orthographic projection: each visible cell maps back to longitude and latitude.
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
         const nx = x / rx, ny = y / ry, d = nx * nx + ny * ny;
         if (d <= 1) {
           const z = Math.sqrt(Math.max(0, 1 - d));
-          const latitude = Math.asin(-ny);
-          const longitude = Math.atan2(nx, z) - Math.PI / 2 + t * .18;
+          const { latitude, longitude } = realistic
+            ? window.DetailedScenes.realisticEarthCoordinates(nx, ny, z, system)
+            : window.DetailedScenes.earthCoordinates(nx, ny, z, t * .18);
           const wrapped = ((longitude + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
           const col = Math.min(179, Math.floor(wrapped / (2 * Math.PI) * 180));
           const row = Math.min(89, Math.max(0, Math.floor((Math.PI / 2 - latitude) / Math.PI * 90)));
@@ -286,7 +333,7 @@
           const ice = window.DetailedScenes.earthPolarIce(latitude, isLand);
           const ch = ice ? '#' : isLand ? (d > .72 ? '*' : '%') : (d > .8 ? ':' : '+');
           const color = ice ? 255 : isLand ? window.DetailedScenes.earthTerrainColor(latitude, longitude, d > .65 ? 1 : 0) : (d > .7 ? 24 : 75);
-          const sunlight = window.DetailedScenes.earthSunlight(nx, z);
+          const sunlight = realistic ? nx * system.sunX + z * system.sunZ : window.DetailedScenes.earthSunlight(nx, z, ny, t);
           const nightSide = sunlight < 0;
           if (nightSide) {
             const lights = window.EARTH_NIGHT_LIGHTS;
@@ -302,10 +349,16 @@
           }
         }
       }
-      const a = t * .25 + 1.2;
-      text(cx + 55 * Math.cos(a), cy + 20 * Math.sin(a), '(o)', 250);
-      text(Math.floor((t * 4) % 180) - 20, 5, '<===>', 220);
-      text(4, 3, 'EARTH / DAY AND NIGHT', 250);
+      if (satellite.z >= 0) window.DetailedScenes.drawSatellite(put, satelliteX, satelliteY);
+      if (realistic) {
+        if (system.moonZ >= 0) window.DetailedScenes.drawRealisticMoon(put, moonX, moonY, 4, 2, system);
+        window.DetailedScenes.drawEarthSun(put, 143, cy, 5, 2);
+      } else {
+        const sky = window.DetailedScenes.earthSky(t);
+        window.DetailedScenes.drawEarthMoon(put, Math.round(cx + sky.moonX * 58), Math.round(cy + sky.moonY * 21), 4, 2, t);
+        window.DetailedScenes.drawEarthSun(put, Math.round(cx + sky.sunX * 63), Math.round(cy + sky.sunY * 21), 5, 2);
+      }
+      text(4, 3, realistic ? 'EARTH / REALISTIC TIMING' : 'EARTH / DAY AND NIGHT', 250);
     } else if (scene === 'solar') {
       stars(150, 0, 44);
       const cx = 74, cy = 24;
@@ -419,7 +472,7 @@
       }
     };
     // Add independent fine particles, so the larger grid adds detail beyond enlarged outlines.
-    if (['earth-day-night', 'solar', 'fireworks', 'nightsky'].includes(scene)) {
+    if (['earth-day-night', 'earth-realistic', 'solar', 'fireworks', 'nightsky'].includes(scene)) {
       for (let i = 0; i < 90; i++) putFine(hash(i + 4100) * output.width, hash(i + 4200) * 65,
         Math.sin(t * 1.3 + i) > .9 ? '*' : '.', i % 4 ? 244 : 229, true);
     } else if (scene === 'rain' || (scene === 'tree' && season === 'winter')) {

@@ -11,8 +11,99 @@
   const hash = n => { const v = Math.sin(n * 127.1 + 17.7) * 43758.5453; return v - Math.floor(v); };
   const mod = (n, size) => ((n % size) + size) % size;
 
-  // Dot product of the surface normal and a sun direction to the right and slightly toward us.
-  const earthSunlight = (nx, z) => nx * .85 + z * .52;
+  // A stylized solar path; scene time already follows the speed and pause controls.
+  function earthSky(time) {
+    const sunAngle = time * .055, moonAngle = .8 + time * .022;
+    return { sunX: Math.cos(sunAngle), sunY: -Math.sin(sunAngle),
+      moonX: Math.cos(moonAngle), moonY: -Math.sin(moonAngle) };
+  }
+  function earthSunlight(nx, z, ny = 0, time = 0) {
+    const sky = earthSky(time);
+    return nx * .85 * sky.sunX + ny * .3 * sky.sunY + z * .52;
+  }
+  const EARTH_TILT = 23.4 * PI / 180;
+  function earthCoordinates(nx, ny, z, rotation) {
+    const localX = nx * Math.cos(EARTH_TILT) + ny * Math.sin(EARTH_TILT);
+    const localY = -nx * Math.sin(EARTH_TILT) + ny * Math.cos(EARTH_TILT);
+    return { latitude: Math.asin(Math.max(-1, Math.min(1, -localY))),
+      longitude: Math.atan2(localX, z) - PI / 2 + rotation };
+  }
+  // The same right-side light direction as Earth, with a small amount of crater texture.
+  function drawEarthMoon(put, cx, cy, rx, ry, time) {
+    for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
+      const nx = x / rx, ny = y / ry, d = nx * nx + ny * ny;
+      if (d > 1) continue;
+      const sunlit = earthSunlight(nx, Math.sqrt(Math.max(0, 1 - d)), ny, time) >= 0;
+      const crater = (nx + .25) ** 2 + (ny - .1) ** 2 < .055 ||
+        (nx - .35) ** 2 + (ny + .35) ** 2 < .035;
+      put(cx + x, cy + y, d > .85 ? '*' : crater ? ':' : sunlit ? '#' : '.',
+        sunlit ? (crater ? 250 : 255) : 240);
+    }
+  }
+  function drawEarthSun(put, cx, cy, rx, ry) {
+    for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
+      const d = (x / rx) ** 2 + (y / ry) ** 2;
+      if (d <= 1) put(cx + x, cy + y, d > .75 ? '*' : '@', d > .75 ? 214 : 226);
+    }
+  }
+  // The camera follows Earth's orbit, keeping the Sun in a fixed direction.
+  // One simulated solar day takes 42 animation seconds at the default speed.
+  function realisticEarthSystem(time) {
+    const days = time / 42;
+    const yearAngle = 2 * PI * days / 365.2422;
+    const moonAngle = 2 * PI * days * (1 / 27.32166 - 1 / 365.2422);
+    const sunLength = Math.hypot(.85, .52);
+    const sunX = .85 / sunLength, sunZ = .52 / sunLength;
+    const inclination = 5.145 * PI / 180;
+    const moonX = sunX * Math.cos(moonAngle) - sunZ * Math.cos(inclination) * Math.sin(moonAngle);
+    const moonY = -Math.sin(inclination) * Math.sin(moonAngle);
+    const moonZ = sunZ * Math.cos(moonAngle) + sunX * Math.cos(inclination) * Math.sin(moonAngle);
+    return { days, yearAngle, moonAngle, sunX, sunZ, moonX, moonY, moonZ,
+      illuminated: (1 - Math.cos(moonAngle)) / 2 };
+  }
+  function realisticEarthCoordinates(nx, ny, z, system) {
+    const s = Math.sin(EARTH_TILT), c = Math.cos(EARTH_TILT);
+    const yearCos = Math.cos(system.yearAngle), yearSin = Math.sin(system.yearAngle);
+    const north = nx * s * yearCos - ny * c + z * s * yearSin;
+    const east = nx * c * yearCos + ny * s + z * c * yearSin;
+    const front = -nx * yearSin + z * yearCos;
+    return { latitude: Math.asin(Math.max(-1, Math.min(1, north))),
+      longitude: Math.atan2(east, front) - PI / 2 - 2 * PI * (1 + 1 / 365.2422) * system.days };
+  }
+  function drawRealisticMoon(put, cx, cy, rx, ry, system) {
+    // Approximate lunar phase as seen from Earth, rendered in a compact icon.
+    const threshold = 1 - 2 * system.illuminated;
+    const waxing = Math.sin(system.moonAngle) >= 0;
+    for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
+      const nx = x / rx, ny = y / ry, d = nx * nx + ny * ny;
+      if (d > 1) continue;
+      const lit = (waxing ? nx : -nx) >= threshold;
+      put(cx + x, cy + y, d > .85 ? '*' : lit ? '#' : '.', lit ? 255 : 240);
+    }
+  }
+  function satelliteOrbit(time, realistic) {
+    const inclination = 51.6 * PI / 180;
+    const system = realistic ? realisticEarthSystem(time) : null;
+    const year = system ? system.yearAngle : 0;
+    // The realistic view uses an approximately 92-minute low-Earth orbit.
+    const angularRate = realistic ? 2 * PI / (42 * 92 / 1440) : .4;
+    const angle = .9 + (realistic ? -1 : 1) * angularRate * time;
+    const tiltSin = Math.sin(EARTH_TILT), tiltCos = Math.cos(EARTH_TILT);
+    const yearSin = Math.sin(year), yearCos = Math.cos(year);
+    const ca = Math.cos(angle), sa = Math.sin(angle);
+    const ci = Math.cos(inclination), si = Math.sin(inclination);
+    const east = [tiltCos * yearCos, tiltSin, tiltCos * yearSin];
+    const front = [-yearSin, 0, yearCos];
+    const north = [tiltSin * yearCos, -tiltCos, tiltSin * yearSin];
+    const position = east.map((value, i) => 1.12 * (ca * value + sa * (ci * front[i] + si * north[i])));
+    return { x: position[0], y: position[1], z: position[2], angle };
+  }
+  function drawSatellite(put, x, y) {
+    const shape = ['  |  ', '-[o]-', '  |  '];
+    shape.forEach((row, dy) => [...row].forEach((ch, dx) => {
+      if (ch !== ' ') put(x + dx - 2, y + dy - 1, ch, 230);
+    }));
+  }
   // A stylized polar ice region; only land is whitened, never the ocean.
   const earthPolarIce = (latitude, isLand) => Boolean(isLand) && Math.abs(latitude) >= PI / 3;
   const terrainColors = {
@@ -262,20 +353,28 @@
         foregroundFish(x, y, shape, kind === 'shark' ? 250 : fishColors[index % fishColors.length]);
       }
       text(4, 5, '[ AQUARIUM ]', water[3]);
-    } else if (scene === 'earth-day-night') {
+    } else if (scene === 'earth-day-night' || scene === 'earth-realistic') {
       stars(260, 1, 82);
       const cx = 150, cy = 43, rx = 72, ry = 36, land = window.EARTH_LAND_MASK;
+      const realistic = scene === 'earth-realistic';
+      const system = realistic ? realisticEarthSystem(t) : null;
+      const moonX = realistic ? Math.round(cx + system.moonX * 120) : 0;
+      const moonY = realistic ? Math.round(cy + system.moonY * 39) : 0;
+      const satellite = satelliteOrbit(t, realistic);
+      const satelliteX = Math.round(cx + satellite.x * rx), satelliteY = Math.round(cy + satellite.y * ry);
+      if (satellite.z < 0) drawSatellite(put, satelliteX, satelliteY);
+      if (realistic && system.moonZ < 0) drawRealisticMoon(put, moonX, moonY, 7, 3, system);
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
         const nx = x / rx, ny = y / ry, d = nx * nx + ny * ny;
         if (d > 1) continue;
-        const z = Math.sqrt(1 - d), latitude = Math.asin(-ny);
-        const longitude = Math.atan2(nx, z) - PI / 2 + t * .15;
+        const z = Math.sqrt(1 - d);
+        const { latitude, longitude } = realistic ? realisticEarthCoordinates(nx, ny, z, system) : earthCoordinates(nx, ny, z, t * .15);
         const col = Math.min(179, Math.floor(mod(longitude + PI, 2 * PI) / (2 * PI) * 180));
         const row = Math.min(89, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 90)));
         const isLand = land && land[row][col] === '1';
         const ice = earthPolarIce(latitude, isLand);
         // The curved terminator follows the sphere, while the continents rotate under it.
-        const sunlight = earthSunlight(nx, z);
+        const sunlight = realistic ? nx * system.sunX + z * system.sunZ : earthSunlight(nx, z, ny, t);
         const nightSide = sunlight < 0;
         if (nightSide) {
           const lights = window.EARTH_NIGHT_LIGHTS;
@@ -290,10 +389,16 @@
           put(cx + x, cy + y, ice ? '#' : isLand ? '%' : '+', color);
         }
       }
-      moon(258, 19, 10, 5);
-      const satellite = mod(t * 8, 350) - 25;
-      sprite(satellite, 11, ['  |', '-[o]-', '  |'], 230);
-      text(5, 3, 'EARTH / DAY AND NIGHT', 250);
+      if (satellite.z >= 0) drawSatellite(put, satelliteX, satelliteY);
+      if (realistic) {
+        if (system.moonZ >= 0) drawRealisticMoon(put, moonX, moonY, 7, 3, system);
+        drawEarthSun(put, 280, cy, 9, 3);
+      } else {
+        const sky = earthSky(t);
+        drawEarthMoon(put, Math.round(cx + sky.moonX * 110), Math.round(cy + sky.moonY * 39), 7, 3, t);
+        drawEarthSun(put, Math.round(cx + sky.sunX * 120), Math.round(cy + sky.sunY * 39), 10, 3);
+      }
+      text(5, 3, realistic ? 'EARTH / REALISTIC TIMING' : 'EARTH / DAY AND NIGHT', 250);
     } else if (scene === 'solar') {
       stars(250, 1, 83);
       const cx = 145, cy = 42;
@@ -447,5 +552,5 @@
       return out;
     }).join('\n') + '\x1b[0m';
   }
-  window.DetailedScenes = { render, aquariumLayout, animateFishTail, aquariumCinema, earthSunlight, earthPolarIce, earthTerrainColor };
+  window.DetailedScenes = { render, aquariumLayout, animateFishTail, aquariumCinema, earthSky, earthSunlight, earthCoordinates, drawEarthMoon, drawEarthSun, realisticEarthSystem, realisticEarthCoordinates, drawRealisticMoon, satelliteOrbit, drawSatellite, earthPolarIce, earthTerrainColor };
 })();

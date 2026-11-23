@@ -4,8 +4,6 @@ const pauseButton = document.querySelector('#pause');
 const status = document.querySelector('#render-status');
 const themeSelect = document.querySelector('#theme');
 const sceneSelect = document.querySelector('#scene');
-const waterSelect = document.querySelector('#water-color');
-const fishSelect = document.querySelector('#fish-color');
 const fireworkSelect = document.querySelector('#firework-color');
 const flowerSelect = document.querySelector('#flowers');
 const detailSelect = document.querySelector('#detail');
@@ -18,8 +16,9 @@ const worker = new Worker('renderer-worker.js?v=20261123k', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
-const sceneNames = { bouquet: 'Flower bouquet', aquarium: 'Aquarium',
-  'earth-day-night': 'Earth from space', solar: 'Solar system', fireworks: 'New York fireworks' };
+const sceneNames = { bouquet: 'Flower bouquet',
+  'earth-realistic': 'Earth realistic',
+  'earth-compare': 'Earth comparison', solar: 'Solar system', fireworks: 'New York fireworks' };
 const params = new URLSearchParams(window.location.search);
 function option(key, choices, fallback) {
   const value = params.get(key);
@@ -38,10 +37,8 @@ const state = {
   heartCount: Math.round(boundedNumber(params.get('hearts'), 18, 0, 100)),
   flowerStyle: flowerStyles.includes(params.get('flowers')) ? params.get('flowers') : 'original',
   detail: detailLevels.includes(params.get('detail')) ? params.get('detail') : 'detailed',
-  scene: ['space', 'earth-night'].includes(params.get('scene'))
-    ? 'earth-day-night' : option('scene', Object.keys(sceneNames), 'bouquet'),
-  waterColor: option('water', ['blue', 'teal', 'purple'], 'blue'),
-  fishColor: option('fish', ['mixed', 'coral', 'cool'], 'mixed'),
+  scene: ['space', 'earth-night', 'earth-day-night'].includes(params.get('scene'))
+    ? 'earth-realistic' : option('scene', Object.keys(sceneNames), 'bouquet'),
   fireworkColor: option('fireworks', ['rainbow', 'warm', 'cool'], 'rainbow'),
 };
 if (params.has('message')) messageInput.value = params.get('message').slice(0, 42);
@@ -49,8 +46,6 @@ themeSelect.selectedIndex = state.theme;
 flowerSelect.value = state.flowerStyle;
 detailSelect.value = state.detail;
 sceneSelect.value = state.scene;
-waterSelect.value = state.waterColor;
-fishSelect.value = state.fishColor;
 fireworkSelect.value = state.fireworkColor;
 speedValue.textContent = state.speed.toFixed(1);
 pauseButton.textContent = state.paused ? 'RESUME' : 'PAUSE';
@@ -188,7 +183,6 @@ function syncSceneControls() {
 }
 sceneSelect.addEventListener('change', () => {
   state.scene = sceneSelect.value;
-  if (state.scene === 'aquarium') sceneTime = 0;
   lastSceneTimestamp = null;
   resetClock = true;
   status.textContent = state.scene === 'bouquet' && !ready ? (workerError || 'Loading the Python renderer…') : '';
@@ -196,8 +190,6 @@ sceneSelect.addEventListener('change', () => {
   if (autoFit) fitScreen();
   redraw();
 });
-waterSelect.addEventListener('change', () => { state.waterColor = waterSelect.value; redraw(); });
-fishSelect.addEventListener('change', () => { state.fishColor = fishSelect.value; redraw(); });
 fireworkSelect.addEventListener('change', () => { state.fireworkColor = fireworkSelect.value; redraw(); });
 flowerSelect.addEventListener('change', () => { state.flowerStyle = flowerSelect.value; redraw(); });
 detailSelect.addEventListener('change', () => {
@@ -246,8 +238,6 @@ document.querySelector('#share').addEventListener('click', async () => {
   url.searchParams.set('flowers', state.flowerStyle);
   url.searchParams.set('detail', state.detail);
   url.searchParams.set('scene', state.scene);
-  url.searchParams.set('water', state.waterColor);
-  url.searchParams.set('fish', state.fishColor);
   url.searchParams.set('fireworks', state.fireworkColor);
   shareLink.value = url.toString();
   shareLabel.hidden = false;
