@@ -2,17 +2,19 @@
 
 ## Browser version
 
-Select a scene to explore the flower bouquet, aquarium, Earth from space, Earth at night, solar system, or New York fireworks. The aquarium and fireworks have color controls. Edit the message, adjust the speed, and use **Share Scene** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them. Links to removed scenes open the flower bouquet.
+Select a scene to explore the flower bouquet, aquarium, Earth from space, solar system, or New York fireworks. Earth from space combines day and night on a rotating globe. The aquarium and fireworks have color controls. Add an optional message, adjust the speed, and use **Share Scene** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them. Links to the previous Earth scenes open the combined globe; links to other removed scenes open the flower bouquet.
 
 Earth's land mask is derived from the public-domain [Natural Earth 1:110m land dataset](https://www.naturalearthdata.com/downloads/110m-physical-vectors/). It is sampled at two-degree resolution to remain compact in the ASCII renderer. The solar-system orbits are stylized for readability and are not to scale.
 
-Earth at night uses NASA's [2016 Black Marble grayscale composite](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/), resampled to a half-degree grid. It shows historical satellite-observed light, not live conditions; the ASCII globe cannot resolve every city or separate nearby lights.
+The land colors use [NASA Blue Marble Next Generation with topography](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/) from July 2004, simplified to a one-degree color grid. Colors are a stylized representation of a historical image, not live terrain or a precise classification. High-latitude land is intentionally rendered as ice.
+
+Earth from space uses NASA's [2016 Black Marble grayscale composite](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/), resampled to a half-degree grid. The day-and-night view uses a fixed light direction while the globe rotates. It shows historical satellite-observed light, not live conditions; the ASCII globe cannot resolve every city or separate nearby lights.
 
 The bouquet uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. The other scenes run directly in JavaScript using a character grid.
 
 All scenes use a 300×90 character grid by default. Fine detail draws the scenes directly at that resolution; Classic keeps the earlier artwork. The bouquet's Classic option uses 212×53, while Fine detail uses 300×90. Select the detail level for any scene using the Detail control. Larger grids may run more slowly on some devices.
 
-The aquarium includes multi-line fish, plants, coral, rocks, and sand. Choose water and fish palettes using its controls.
+The aquarium cycles from a wide tank view to hand-drawn shark and pufferfish close-ups, then returns to the tank. Choose water and fish palettes using its controls; pause and speed also apply to the sequence.
 
 Use **+ Zoom** and scroll to inspect a scene on a small screen, or **Fit** to see the complete terminal. The site also supports full-screen mode where the browser allows it. The bouquet loads the Pyodide Python runtime from a CDN, so an internet connection is needed when it starts.
 

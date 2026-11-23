@@ -11,6 +11,22 @@
   const hash = n => { const v = Math.sin(n * 127.1 + 17.7) * 43758.5453; return v - Math.floor(v); };
   const mod = (n, size) => ((n % size) + size) % size;
 
+  // Dot product of the surface normal and a sun direction to the right and slightly toward us.
+  const earthSunlight = (nx, z) => nx * .85 + z * .52;
+  // A stylized polar ice region; only land is whitened, never the ocean.
+  const earthPolarIce = (latitude, isLand) => Boolean(isLand) && Math.abs(latitude) >= PI / 3;
+  const terrainColors = {
+    F: [34, 28, 22], G: [71, 64, 28], O: [107, 65, 58],
+    S: [180, 137, 94], B: [137, 94, 58], R: [173, 130, 94], I: [255, 250, 245],
+  };
+  function earthTerrainColor(latitude, longitude, shade = 0) {
+    const terrain = window.EARTH_TERRAIN;
+    if (!terrain) return [114, 71, 28][shade];
+    const row = Math.min(179, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 180)));
+    const col = Math.min(359, Math.floor(mod(longitude + PI, 2 * PI) / (2 * PI) * 360));
+    return (terrainColors[terrain[row][col]] || terrainColors.O)[shade];
+  }
+
   // Shared by both renderers: each school has a lane, a speed, and evenly spaced positions.
   function aquariumLayout({ left, right, time, classic, fishWidth, sharkWidth, pufferWidth }) {
     const lanes = classic ? [5, 11, 17, 23, 30, 36] : [10, 19, 28, 37, 47, 56];
@@ -36,6 +52,82 @@
   function animateFishTail(shape, time) {
     if (Math.sin(time * 4) <= 0) return shape;
     return shape.map(row => row.replace('<  >', '<  |'));
+  }
+
+  // Composite hand-drawn close-ups over the live tank with a short left-to-right wipe.
+  function aquariumCinema(rows, time, options = {}) {
+    const phase = mod(time, 30);
+    let shot, amount = 1;
+    if (phase < 8 || phase >= 27) return;
+    if (phase < 9) { shot = 'shark'; amount = phase - 8; }
+    else if (phase < 17) shot = 'shark';
+    else if (phase < 18) { shot = 'puffer'; amount = phase - 17; }
+    else if (phase < 26) shot = 'puffer';
+    else { shot = 'puffer'; amount = 27 - phase; }
+
+    const waterColor = options.waterColor === 'teal' ? 37 : options.waterColor === 'purple' ? 97 : 67;
+    const fishColor = options.fishColor === 'coral' ? 214 : options.fishColor === 'cool' ? 117 : 220;
+    const shotRows = Array.from({ length: HEIGHT }, () => Array.from({ length: WIDTH }, () => [' ', 0]));
+    function put(x, y, char, color) {
+      x = Math.round(x); y = Math.round(y);
+      if (x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT && char !== ' ') shotRows[y][x] = [char, color];
+    }
+    function drawText(x, y, value, color) { [...value].forEach((ch, i) => put(x + i, y, ch, color)); }
+    for (let i = 0; i < (options.detail === 'classic' ? 28 : 55); i++) {
+      const x = 8 + hash(i + 6000) * 284 + Math.sin(time * .6 + i);
+      const y = 7 + mod(hash(i + 6100) * 74 - time * (1 + i % 3), 74);
+      put(x, y, i % 4 ? '.' : 'o', waterColor);
+    }
+    const shark = [
+      '                                     /\\',
+      '                                    /  \\',
+      '                                   /    \\__',
+      '             _____________________/        `-.___',
+      '   /\\     .\'                                     `-._',
+      '  /  \\__ /      __                                   `-._',
+      ' <        \\____/  \\          )))             o          `-._',
+      '  \\      /          \\_________________________________     _>',
+      '   \\____/             \\                     _____________/`',
+      '                       \\_______________     /',
+      '                                        \\___/',
+    ];
+    const puffer = [
+      '                     \\    |    /',
+      '                 \\   .-^^^^^^^-.   /',
+      '              --   .\'           `.   --',
+      '                /  /   .      .    \\  \\',
+      '           ---    |       .         |    ---',
+      '                 |   o         .    |',
+      '           ---   |       .          |><',
+      '                \\    .        .   /',
+      '              --  `.      .     .\'  --',
+      '                 /  `-._____.-\'  \\',
+      '                     /    |    \\',
+    ];
+    // The previous shot remains beneath the wipe, including when returning to the tank.
+    const previous = phase >= 17 && phase < 18 ? 'shark' : 'wide';
+    function drawShot(name) {
+      const picture = name === 'shark' ? shark : puffer;
+      const width = Math.max(...picture.map(row => row.length));
+      const x = Math.floor((WIDTH - width) / 2 + Math.sin(time * .45) * 3);
+      const y = Math.floor((HEIGHT - picture.length) / 2 + Math.sin(time * .6));
+      for (let row = 0; row < picture.length; row++) {
+        for (let col = 0; col < width; col++) shotRows[y + row][x + col] = [' ', 0];
+      }
+      picture.forEach((row, i) => drawText(x, y + i, row, name === 'shark' ? 250 : fishColor));
+      drawText(5, 5, name === 'shark' ? '[ AQUARIUM / SHARK ]' : '[ AQUARIUM / PUFFERFISH ]', waterColor);
+    }
+    const background = shotRows.map(row => row.slice());
+    drawShot(shot);
+    const cutoff = Math.round(WIDTH * amount);
+    if (previous === 'shark') {
+      const next = shotRows.map(row => row.slice());
+      for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < WIDTH; x++) shotRows[y][x] = background[y][x];
+      drawShot('shark');
+      for (let y = 0; y < HEIGHT; y++) for (let x = 0; x < cutoff; x++) shotRows[y][x] = next[y][x];
+      amount = 1;
+    }
+    for (let y = 0; y < HEIGHT - 2; y++) for (let x = 0; x < Math.round(WIDTH * amount); x++) rows[y][x] = shotRows[y][x];
   }
 
   function render(scene, options = {}) {
@@ -170,7 +262,7 @@
         foregroundFish(x, y, shape, kind === 'shark' ? 250 : fishColors[index % fishColors.length]);
       }
       text(4, 5, '[ AQUARIUM ]', water[3]);
-    } else if (scene === 'space' || scene === 'earth-night') {
+    } else if (scene === 'earth-day-night') {
       stars(260, 1, 82);
       const cx = 150, cy = 43, rx = 72, ry = 36, land = window.EARTH_LAND_MASK;
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
@@ -181,10 +273,11 @@
         const col = Math.min(179, Math.floor(mod(longitude + PI, 2 * PI) / (2 * PI) * 180));
         const row = Math.min(89, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 90)));
         const isLand = land && land[row][col] === '1';
-        const daylight = nx * .7 + z * .7 > .05;
-        const polar = Math.abs(latitude) > 1.35;
-        const ice = polar && isLand;
-        if (scene === 'earth-night') {
+        const ice = earthPolarIce(latitude, isLand);
+        // The curved terminator follows the sphere, while the continents rotate under it.
+        const sunlight = earthSunlight(nx, z);
+        const nightSide = sunlight < 0;
+        if (nightSide) {
           const lights = window.EARTH_NIGHT_LIGHTS;
           const lightRow = Math.min(359, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 360)));
           const lightCol = Math.min(719, Math.floor(mod(longitude + PI, 2 * PI) / (2 * PI) * 720));
@@ -192,14 +285,15 @@
           put(cx + x, cy + y, brightness ? (brightness > 3 ? '*' : '+') : isLand ? ':' : '.',
             brightness ? (brightness > 3 ? 230 : 178) : ice ? 250 : isLand ? 60 : 24);
         } else {
-          const color = ice ? 255 : isLand ? (daylight ? 114 : 28) : (daylight ? 75 : 24);
-          put(cx + x, cy + y, ice ? '#' : isLand ? (daylight ? '%' : ':') : '+', color);
+          const twilight = sunlight < .16;
+          const color = ice ? (twilight ? 250 : 255) : isLand ? earthTerrainColor(latitude, longitude, twilight ? 1 : 0) : (twilight ? 67 : 75);
+          put(cx + x, cy + y, ice ? '#' : isLand ? '%' : '+', color);
         }
       }
       moon(258, 19, 10, 5);
       const satellite = mod(t * 8, 350) - 25;
       sprite(satellite, 11, ['  |', '-[o]-', '  |'], 230);
-      text(5, 3, scene === 'earth-night' ? 'EARTH AT NIGHT / NASA 2016' : 'EARTH / ROTATING GLOBE', 250);
+      text(5, 3, 'EARTH / DAY AND NIGHT', 250);
     } else if (scene === 'solar') {
       stars(250, 1, 83);
       const cx = 145, cy = 42;
@@ -341,6 +435,7 @@
       const shooting = mod(t, 12); if (shooting < 1.6) text(95 + shooting * 50, 8 + shooting * 8, '---*', 231);
       text(4, 3, 'NIGHT SKY / MOUNTAINS', 250);
     }
+    if (scene === 'aquarium') aquariumCinema(rows, t, options);
     const message = Array.from(options.message || '').slice(0, WIDTH);
     text(Math.floor((WIDTH - message.length) / 2), 88, message.join(''), 218);
     return '\x1b[H' + rows.map(row => {
@@ -352,5 +447,5 @@
       return out;
     }).join('\n') + '\x1b[0m';
   }
-  window.DetailedScenes = { render, aquariumLayout, animateFishTail };
+  window.DetailedScenes = { render, aquariumLayout, animateFishTail, aquariumCinema, earthSunlight, earthPolarIce, earthTerrainColor };
 })();

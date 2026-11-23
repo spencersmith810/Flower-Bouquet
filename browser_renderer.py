@@ -20,7 +20,7 @@ class BrowserBouquet:
             self.flower_style = flower_style
             self.scene = bouquet3d.build_scene(theme, flower_style)
         bouquet3d.NUM_HEARTS = heart_count
-        bouquet3d.MESSAGE = message or "for you ♥"
+        bouquet3d.MESSAGE = message if message is not None else ""
         if self.last_timestamp is None or reset_clock:
             self.last_timestamp = timestamp
         dt = min(max((timestamp - self.last_timestamp) / 1000.0, 0), 0.1)

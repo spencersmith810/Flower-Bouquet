@@ -2,7 +2,7 @@
 (function () {
   const W = 110, H = 38;
   const layoutDimensions = scene => scene === 'aquarium' ? { width: 164, height: 52 }
-    : ['tree', 'space', 'earth-night', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
+    : ['tree', 'earth-day-night', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'].includes(scene)
       ? { width: 150, height: 50 } : { width: W, height: H };
   const dimensions = () => ({ width: 300, height: 90 });
   const palettes = {
@@ -268,7 +268,7 @@
       line(left, top, right, top, '=', water[3]); line(left, floor, right, floor, '=', water[3]);
       line(left, top, left, floor, '|', water[3]); line(right, top, right, floor, '|', water[3]);
       text(left + 2, top, '[ AQUARIUM ]', water[3]);
-    } else if (scene === 'space' || scene === 'earth-night') {
+    } else if (scene === 'earth-day-night') {
       stars(150, 0, 44);
       const cx = 75, cy = 24, rx = 38, ry = 19;
       const land = window.EARTH_LAND_MASK;
@@ -283,24 +283,29 @@
           const col = Math.min(179, Math.floor(wrapped / (2 * Math.PI) * 180));
           const row = Math.min(89, Math.max(0, Math.floor((Math.PI / 2 - latitude) / Math.PI * 90)));
           const isLand = land && land[row][col] === '1';
-          const polar = Math.abs(latitude) > 1.33;
-          const ice = polar && isLand;
+          const ice = window.DetailedScenes.earthPolarIce(latitude, isLand);
           const ch = ice ? '#' : isLand ? (d > .72 ? '*' : '%') : (d > .8 ? ':' : '+');
-          const color = ice ? 255 : isLand ? (d > .65 ? 71 : 114) : (d > .7 ? 24 : 75);
-          if (scene === 'earth-night') {
+          const color = ice ? 255 : isLand ? window.DetailedScenes.earthTerrainColor(latitude, longitude, d > .65 ? 1 : 0) : (d > .7 ? 24 : 75);
+          const sunlight = window.DetailedScenes.earthSunlight(nx, z);
+          const nightSide = sunlight < 0;
+          if (nightSide) {
             const lights = window.EARTH_NIGHT_LIGHTS;
             const lightRow = Math.min(359, Math.max(0, Math.floor((Math.PI / 2 - latitude) / Math.PI * 360)));
             const lightCol = Math.min(719, Math.floor(wrapped / (2 * Math.PI) * 720));
             const brightness = lights ? Number(lights[lightRow][lightCol]) : 0;
             put(cx + x, cy + y, brightness ? (brightness > 3 ? '*' : '+') : isLand ? ':' : '.',
               brightness ? (brightness > 3 ? 230 : 178) : ice ? 250 : isLand ? 60 : 24);
-          } else put(cx + x, cy + y, ch, color);
+          } else {
+            const twilight = sunlight < .16;
+            const twilightColor = ice ? 250 : isLand ? window.DetailedScenes.earthTerrainColor(latitude, longitude, 1) : 67;
+            put(cx + x, cy + y, ch, twilight ? twilightColor : color);
+          }
         }
       }
       const a = t * .25 + 1.2;
       text(cx + 55 * Math.cos(a), cy + 20 * Math.sin(a), '(o)', 250);
       text(Math.floor((t * 4) % 180) - 20, 5, '<===>', 220);
-      text(4, 3, scene === 'earth-night' ? 'EARTH AT NIGHT / NASA 2016' : 'EARTH / ROTATING GLOBE', 250);
+      text(4, 3, 'EARTH / DAY AND NIGHT', 250);
     } else if (scene === 'solar') {
       stars(150, 0, 44);
       const cx = 74, cy = 24;
@@ -414,7 +419,7 @@
       }
     };
     // Add independent fine particles, so the larger grid adds detail beyond enlarged outlines.
-    if (['space', 'earth-night', 'solar', 'fireworks', 'nightsky'].includes(scene)) {
+    if (['earth-day-night', 'solar', 'fireworks', 'nightsky'].includes(scene)) {
       for (let i = 0; i < 90; i++) putFine(hash(i + 4100) * output.width, hash(i + 4200) * 65,
         Math.sin(t * 1.3 + i) > .9 ? '*' : '.', i % 4 ? 244 : 229, true);
     } else if (scene === 'rain' || (scene === 'tree' && season === 'winter')) {
@@ -434,6 +439,7 @@
       const x = Math.round(label.x * output.width / W), y = Math.round(label.y * output.height / H);
       Array.from(label.str).forEach((ch, i) => putFine(x + i, y, ch, label.color));
     }
+    if (scene === 'aquarium') window.DetailedScenes.aquariumCinema(enlarged, t, options);
     const message = Array.from(options.message || '').slice(0, output.width);
     const start = Math.max(0, Math.floor((output.width - message.length) / 2));
     message.forEach((ch, i) => putFine(start + i, output.height - 2, ch, 218));

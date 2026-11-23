@@ -14,12 +14,12 @@ const speedValue = document.querySelector('#speed-value');
 const shareStatus = document.querySelector('#share-status');
 const shareLink = document.querySelector('#share-link');
 const shareLabel = document.querySelector('#share-link-label');
-const worker = new Worker('renderer-worker.js?v=20261119i', { type: 'module' });
+const worker = new Worker('renderer-worker.js?v=20261123k', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
-const sceneNames = { bouquet: 'Flower bouquet', aquarium: 'Aquarium', space: 'Earth from space',
-  'earth-night': 'Earth at night', solar: 'Solar system', fireworks: 'New York fireworks' };
+const sceneNames = { bouquet: 'Flower bouquet', aquarium: 'Aquarium',
+  'earth-day-night': 'Earth from space', solar: 'Solar system', fireworks: 'New York fireworks' };
 const params = new URLSearchParams(window.location.search);
 function option(key, choices, fallback) {
   const value = params.get(key);
@@ -38,7 +38,8 @@ const state = {
   heartCount: Math.round(boundedNumber(params.get('hearts'), 18, 0, 100)),
   flowerStyle: flowerStyles.includes(params.get('flowers')) ? params.get('flowers') : 'original',
   detail: detailLevels.includes(params.get('detail')) ? params.get('detail') : 'detailed',
-  scene: option('scene', Object.keys(sceneNames), 'bouquet'),
+  scene: ['space', 'earth-night'].includes(params.get('scene'))
+    ? 'earth-day-night' : option('scene', Object.keys(sceneNames), 'bouquet'),
   waterColor: option('water', ['blue', 'teal', 'purple'], 'blue'),
   fishColor: option('fish', ['mixed', 'coral', 'cool'], 'mixed'),
   fireworkColor: option('fireworks', ['rainbow', 'warm', 'cool'], 'rainbow'),
@@ -187,6 +188,7 @@ function syncSceneControls() {
 }
 sceneSelect.addEventListener('change', () => {
   state.scene = sceneSelect.value;
+  if (state.scene === 'aquarium') sceneTime = 0;
   lastSceneTimestamp = null;
   resetClock = true;
   status.textContent = state.scene === 'bouquet' && !ready ? (workerError || 'Loading the Python renderer…') : '';

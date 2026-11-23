@@ -11,7 +11,7 @@ function setup(search = '') {
     'share-status', 'share-link', 'share-link-label', 'slower', 'faster', 'hearts',
     'zoom-in', 'zoom-out', 'zoom-fit', 'fullscreen', 'share']) {
     elements[`#${id}`] = {
-      value: id === 'message' ? 'for you ♥' : '', textContent: '', innerHTML: '',
+      value: '', textContent: '', innerHTML: '',
       selectedIndex: 0, clientWidth: 1000, style: {}, hidden: true, callbacks: {},
       addEventListener(type, callback) { this.callbacks[type] = callback; },
       setAttribute() {}, select() {},
@@ -48,13 +48,15 @@ function setup(search = '') {
   const scenesSource = fs.readFileSync(path.join(__dirname, '..', 'scenes.js'), 'utf8');
   const detailedSource = fs.readFileSync(path.join(__dirname, '..', 'detailed-scenes.js'), 'utf8');
   const earthSource = fs.readFileSync(path.join(__dirname, '..', 'earth-mask.js'), 'utf8');
+  const terrainSource = fs.readFileSync(path.join(__dirname, '..', 'earth-terrain.js'), 'utf8');
   const nightSource = fs.readFileSync(path.join(__dirname, '..', 'earth-night-lights.js'), 'utf8');
   vm.runInNewContext(earthSource, sandbox);
+  vm.runInNewContext(terrainSource, sandbox);
   vm.runInNewContext(nightSource, sandbox);
   vm.runInNewContext(detailedSource, sandbox);
   vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
-  return { elements, worker, timers, groups, scenes: window.AsciiScenes, detailed: window.DetailedScenes, land: window.EARTH_LAND_MASK };
+  return { elements, worker, timers, groups, window, scenes: window.AsciiScenes, detailed: window.DetailedScenes, land: window.EARTH_LAND_MASK };
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
@@ -117,7 +119,7 @@ test('choosing a flower style and detail level reaches the renderer', () => {
 
 test('all scenes produce distinct animated character grids', () => {
   const { scenes } = setup();
-  const names = ['aquarium', 'space', 'earth-night', 'solar', 'fireworks'];
+  const names = ['aquarium', 'earth-day-night', 'solar', 'fireworks'];
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
   for (let i = 0; i < frames.length; i++) {
@@ -134,7 +136,7 @@ test('all scenes produce distinct animated character grids', () => {
 
 test('every scene offers a distinct classic and fine-detail rendering', async () => {
   const { scenes, elements } = setup('?scene=aquarium&detail=classic');
-  for (const scene of ['aquarium', 'space', 'earth-night', 'solar', 'fireworks']) {
+  for (const scene of ['aquarium', 'earth-day-night', 'solar', 'fireworks']) {
     const classic = scenes.render(scene, { time: 2, detail: 'classic' });
     const detailed = scenes.render(scene, { time: 2, detail: 'detailed' });
     assert.notEqual(classic, detailed, scene);
@@ -157,27 +159,104 @@ test('Earth rotates mapped land and the solar system identifies its planets', ()
   assert.equal(cell(23, 13), '1'); // Africa
   assert.equal(cell(-25, 133), '1'); // Australia
   assert.equal(cell(0, -145), '0'); // Pacific Ocean
-  const earth = scenes.render('space', { time: 0 });
+  const earth = scenes.render('earth-day-night', { time: 0 });
   assert.match(earth, /EARTH/);
   assert.match(earth, /%/);
-  assert.notEqual(earth, scenes.render('space', { time: 8 }));
+  assert.notEqual(earth, scenes.render('earth-day-night', { time: 8 }));
   const solar = scenes.render('solar', { time: 2 });
   for (const planet of ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune']) {
     assert.match(solar, new RegExp(planet));
   }
 });
 
-test('Earth at night renders satellite lights and supports shared links', async () => {
-  const { scenes, elements } = setup('?scene=earth-night');
-  assert.equal(elements['#scene'].value, 'earth-night');
+test('polar land is icy white while polar oceans stay blue', () => {
+  const { scenes, window } = setup();
+  window.EARTH_NIGHT_LIGHTS = Array.from({ length: 360 }, () => '0'.repeat(720));
+  function cellColor(frame, targetY) {
+    let x = 0, y = 0, color = -1;
+    for (const token of frame.match(/\x1b\[[0-9;]*[mH]|[^\x1b]/g)) {
+      const match = token.match(/^\x1b\[38;5;(\d+)m$/);
+      if (match) color = Number(match[1]);
+      else if (token === '\n') { x = 0; y++; }
+      else if (!token.startsWith('\x1b')) {
+        if (x === 150 && y === targetY) return color;
+        x++;
+      }
+    }
+    throw new Error('Polar cell not found');
+  }
+  for (const detail of ['classic', 'detailed']) for (const scene of ['earth-day-night']) {
+    window.EARTH_LAND_MASK = Array.from({ length: 90 }, () => '1'.repeat(180));
+    const land = scenes.render(scene, { detail, time: 0 });
+    window.EARTH_LAND_MASK = Array.from({ length: 90 }, () => '0'.repeat(180));
+    const ocean = scenes.render(scene, { detail, time: 0 });
+    for (const y of [11, 76]) {
+      assert.ok([250, 255].includes(cellColor(land, y)), `${scene} ${detail} land at ${y}`);
+      assert.ok([24, 75, 67].includes(cellColor(ocean, y)), `${scene} ${detail} ocean at ${y}`);
+    }
+  }
+});
+
+test('Earth uses geographic terrain colors in both detail modes', () => {
+  const { scenes, detailed, window } = setup();
+  const radians = degrees => degrees * Math.PI / 180;
+  assert.equal(detailed.earthTerrainColor(radians(24), radians(13)), 180); // Sahara sand
+  assert.equal(detailed.earthTerrainColor(radians(0), radians(23)), 34); // Congo forest
+  assert.equal(detailed.earthTerrainColor(radians(-25), radians(134)), 173); // Australian interior
+  assert.equal(detailed.earthTerrainColor(radians(73), radians(-40)), 255); // Greenland ice
+  for (const detail of ['classic', 'detailed']) for (const scene of ['earth-day-night']) {
+    window.EARTH_TERRAIN = Array.from({ length: 180 }, () => 'S'.repeat(360));
+    const sandy = scenes.render(scene, { time: 0, detail });
+    window.EARTH_TERRAIN = Array.from({ length: 180 }, () => 'F'.repeat(360));
+    const forest = scenes.render(scene, { time: 0, detail });
+    assert.match(sandy, /\x1b\[38;5;180m/);
+    assert.match(forest, /\x1b\[38;5;34m/);
+    assert.notEqual(sandy, forest);
+  }
+});
+
+test('previous Earth links open the combined Earth scene', () => {
+  for (const scene of ['space', 'earth-night', 'earth-day-night']) {
+    assert.equal(setup(`?scene=${scene}`).elements['#scene'].value, 'earth-day-night');
+  }
+});
+
+test('default message is empty and custom messages remain available', () => {
+  assert.equal(setup().elements['#message'].value, '');
+  assert.equal(setup('?message=Hello').elements['#message'].value, 'Hello');
+});
+
+test('day-night Earth shows lights only on the shadow side and can be shared', async () => {
+  const { scenes, elements, window } = setup('?scene=earth-day-night');
+  assert.equal(elements['#scene'].value, 'earth-day-night');
+  window.EARTH_NIGHT_LIGHTS = Array.from({ length: 360 }, () => '9'.repeat(720));
+  function colorAt(frame, targetX, targetY) {
+    let x = 0, y = 0, color = -1;
+    const tokens = frame.match(/\x1b\[[0-9;]*[mH]|[^\x1b]/g);
+    for (const token of tokens) {
+      const match = token.match(/^\x1b\[38;5;(\d+)m$/);
+      if (match) color = Number(match[1]);
+      else if (token === '\n') { x = 0; y++; }
+      else if (!token.startsWith('\x1b')) {
+        if (x === targetX && y === targetY) return color;
+        x++;
+      }
+    }
+    throw new Error('Cell not found');
+  }
   for (const detail of ['classic', 'detailed']) {
-    const frame = scenes.render('earth-night', { time: 0, detail });
-    assert.match(frame, /EARTH AT NIGHT/);
-    assert.match(frame, /\x1b\[38;5;(178|230)m/);
-    assert.notEqual(frame, scenes.render('earth-night', { time: 8, detail }));
+    const frame = scenes.render('earth-day-night', { time: 0, detail });
+    assert.match(frame, /EARTH \/ DAY AND NIGHT/);
+    assert.equal(colorAt(frame, 100, 43), 230);
+    assert.notEqual(colorAt(frame, 180, 43), 230);
+    // At the same horizontal position the curved edge is in shadow near the top,
+    // but illuminated closer to the middle of the globe.
+    assert.equal(colorAt(frame, 114, 16), 230);
+    assert.notEqual(colorAt(frame, 114, 43), 230);
+    assert.notEqual(frame, scenes.render('earth-day-night', { time: 8, detail }));
   }
   await elements['#share'].click();
-  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'earth-night');
+  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'earth-day-night');
 });
 
 test('aquarium uses a larger grid with moving, detailed fish', () => {
@@ -190,6 +269,27 @@ test('aquarium uses a larger grid with moving, detailed fish', () => {
   assert.match(plain, /AQUARIUM/);
   assert.match(plain, /o\s+\)>/);
   assert.notEqual(frame, scenes.render('aquarium', { time: 4, waterColor: 'teal', fishColor: 'coral' }));
+});
+
+test('aquarium plays wide, shark, pufferfish and wide shots in both detail modes', () => {
+  const { scenes } = setup();
+  for (const detail of ['classic', 'detailed']) {
+    const render = time => scenes.render('aquarium', { time, detail, message: 'Hello', waterColor: 'teal', fishColor: 'coral' });
+    const wide = render(2), shark = render(12), puffer = render(21), returnToWide = render(29);
+    assert.match(wide, /AQUARIUM/);
+    assert.match(shark, /AQUARIUM \/ SHARK/);
+    assert.match(puffer, /AQUARIUM \/ PUFFERFISH/);
+    assert.match(returnToWide, /AQUARIUM/);
+    assert.doesNotMatch(returnToWide, /SHARK|PUFFERFISH/);
+    for (const frame of [wide, render(8.5), shark, render(17.5), puffer, render(26.5), returnToWide]) {
+      const lines = frame.replace(/\x1b\[[0-9;]*[mH]/g, '').split('\n');
+      assert.equal(lines.length, 90);
+      assert.ok(lines.every(line => [...line].length === 300));
+      assert.match(frame, /Hello/);
+    }
+    assert.notEqual(shark, render(13));
+    assert.notEqual(puffer, render(22));
+  }
 });
 
 test('shark and pufferfish are visible in both aquarium detail modes', () => {

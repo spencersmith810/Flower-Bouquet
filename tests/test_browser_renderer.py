@@ -49,6 +49,11 @@ class BrowserRendererTests(unittest.TestCase):
         self.assertIn("Sunset", plain(rendered))
         self.assertEqual(len(self.bouquet.hearts), 21)
 
+    def test_empty_message_does_not_restore_default(self):
+        rendered = self.bouquet.frame(0, True, .6, 0, 0, "")
+        self.assertNotIn("for you ♥", plain(rendered))
+        self.assertEqual(bouquet3d.MESSAGE, "")
+
     def test_flower_styles_have_distinct_shapes(self):
         for style, expected in (("roses", {"rose"}), ("sunflowers", {"sunflower"}),
                                 ("mixed", {"rose", "sunflower", "tulip"})):
