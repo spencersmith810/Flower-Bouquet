@@ -11,6 +11,33 @@
   const hash = n => { const v = Math.sin(n * 127.1 + 17.7) * 43758.5453; return v - Math.floor(v); };
   const mod = (n, size) => ((n % size) + size) % size;
 
+  // Shared by both renderers: each school has a lane, a speed, and evenly spaced positions.
+  function aquariumLayout({ left, right, time, classic, fishWidth, sharkWidth, pufferWidth }) {
+    const lanes = classic ? [5, 11, 17, 23, 30, 36] : [10, 19, 28, 37, 47, 56];
+    const sway = Math.round(Math.sin(time * .55) * .6);
+    const placements = [];
+    function add(kind, lane, width, height, count, direction, speed, initial, firstIndex = 0) {
+      const range = right - left + width;
+      for (let i = 0; i < count; i++) {
+        const travel = mod(initial + time * speed + i * (width + 12), range);
+        placements.push({ kind, x: Math.round(direction > 0 ? left - width + travel : right - travel),
+          y: lanes[lane] + sway, width, height, direction, index: firstIndex + i });
+      }
+    }
+    add('shark', 0, sharkWidth, 5, 1, 1, 2.4, sharkWidth + 25);
+    add('fish', 1, fishWidth, classic ? 5 : 6, 2, 1, 3.8, fishWidth + 45, 0);
+    add('fish', 2, fishWidth, classic ? 5 : 6, 2, -1, 3.3, 30, 2);
+    add('puffer', 3, pufferWidth, classic ? 6 : 7, 1, -1, 1.8, 75);
+    add('fish', 4, fishWidth, classic ? 5 : 6, 2, 1, 2.9, fishWidth + 25, 4);
+    add('fish', 5, fishWidth, classic ? 5 : 6, 3, -1, 3.2, 20, 6);
+    return placements;
+  }
+
+  function animateFishTail(shape, time) {
+    if (Math.sin(time * 4) <= 0) return shape;
+    return shape.map(row => row.replace('<  >', '<  |'));
+  }
+
   function render(scene, options = {}) {
     const t = Number.isFinite(options.time) ? options.time : 0;
     const rows = Array.from({ length: HEIGHT }, () => Array.from({ length: WIDTH }, () => [' ', 0]));
@@ -45,9 +72,19 @@
     }
     const peaks = [[0,64],[34,43],[54,56],[96,31],[122,53],[166,38],[190,53],[233,33],[262,55],[299,44]];
     function moon(cx, cy, rx = 13, ry = 7) {
+      const craters = [
+        [-.48, -.18, .16], [-.18, -.48, .12], [.18, -.28, .2],
+        [.48, -.02, .13], [-.25, .18, .22], [.15, .38, .14],
+      ];
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
         const d = (x / rx) ** 2 + (y / ry) ** 2;
-        if (d <= 1) put(cx + x, cy + y, d > .85 ? '*' : hash((x + 50) * 31 + y) > .78 ? ':' : '.', d > .85 ? 230 : 250);
+        if (d <= 1) {
+          const nx = x / rx, ny = y / ry;
+          const crater = craters.find(([craterX, craterY, radius]) =>
+            ((nx - craterX) ** 2 + (ny - craterY) ** 2) < radius ** 2);
+          const char = crater ? (d > .82 ? '*' : crater[2] > .17 ? 'o' : '.') : d > .85 ? '*' : ':';
+          put(cx + x, cy + y, char, crater ? 230 : 250);
+        }
       }
     }
     function pine(cx, ground, height, color = 29) {
@@ -70,27 +107,21 @@
       const water = options.waterColor === 'teal' ? [23, 30, 37, 44] : options.waterColor === 'purple' ? [54, 60, 97, 141] : [24, 25, 67, 75];
       const fishColors = options.fishColor === 'coral' ? [203, 209, 214, 216] : options.fishColor === 'cool' ? [75, 81, 117, 141] : [214, 211, 81, 209];
       line(2, 5, 297, 5, '~', water[3]);
-      for (let y = 8; y < 65; y += 7) for (let x = 8; x < 290; x += 21) text(x + Math.sin(t * .5 + y), y, '.  .', water[0]);
+      // Gentle surface ripples and sparse bubbles leave the swimming fish readable.
+      for (let x = 12; x < 290; x += 36) text(x + Math.sin(t * .5 + x), 7, '~   ~', water[1]);
+      for (let i = 0; i < 35; i++) put(5 + hash(i + 520) * 290 + Math.sin(t + i), 9 + mod(hash(i + 521) * 61 - t * (2 + i % 3), 61), i % 4 ? '.' : 'o', water[2]);
       for (let i = 0; i < 320; i++) put(hash(i + 50) * 295, 72 + hash(i + 51) * 13, ['.', ',', ':', '`'][i % 4], [101, 137, 144, 180][i % 4]);
       // Reef and rock outlines sit behind the fish and plants.
       sprite(24, 68, ['      ___       ___', '  _.-\'   `-._.-\'   `-._', ' /     .    /     .     \\', '/__..______/___..________\\'], 102);
       sprite(219, 66, ['        _______       ____', '  __.-\'       `-.__.-\'    `-.', ' /    .      .   /  .         \\', '/_____..________/________..____\\'], 102);
-      sprite(179, 56, ['          /\\', '         /  \\', '        /____\\', '   ____/| [] |\\____', '  | _  _|    |_  _ |', '  || || | /\\ | || ||', '  ||_||_| || |_|_||_|', '  |  .   | || | .   |', '  |______|_||_|_____|'], 180);
+      sprite(166, 65, ['       __      ___', '   _.-\'  `-._./   `-._', '  /   .     /   .     \\', ' /__.._____/____.._____\\'], 102);
       const fish = [
-        ['       .-~~~~~~~~-._', '   ___/  _   .  .  `-._', '><(_____(o)  ))  ))    _)>', '   \\      .     .  _.-\'', '    `-._       _.-\'', '        `-----\''],
-        ['       _.-^^^^-._', '   _.-\'   o  / / `-._', ' ><      (   / /     )>', '   `-._       __..-\'', '       `-----\''],
-        ['        .-~~~-._', '   __.-\'  o ::: `-._', ' ><___    :::      _)>', '      `-.__   _.-\'', '           `-\''],
+        ['          .-~~~~~~~~-.', '  /\\    .\'            `.', ' <  >--(    ))       o   )>', '  \\/    `._          _.\'', '           `--------\''],
+        ['         .-^^^^^^-.', '  /\\  .\'          `.', ' <  >-(    / /    o  )>', '  \\/  `._          _.\'', '         `--------\''],
+        ['       .-~~~~~~~-.', '  /\\ /           \\', ' <  >|   :::    o  )>', '  \\/ \\           /', '       `-_______-\''],
+        ['            /\\', '      .----/  \\---.', '  /\\/    / /     o \\', ' <  >      /        )>', '  \\/\\_____________/', '            \\/'],
       ];
       const mirror = str => [...str].reverse().map(c => ({'<':'>','>':'<','(':')',')':'(','/':'\\','\\':'/'})[c] || c).join('');
-      function drawFish(i) {
-        const shape = fish[i % fish.length], w = Math.max(...shape.map(s => s.length));
-        // The ninth fish follows the first, keeping the same speed and direction.
-        const x = i === 8 ? -w + mod(t * 5 - 35, 340)
-          : i % 2 ? 300 - mod(t * (5 + i * .4) + i * 38, 340) : -w + mod(t * (5 + i * .4) + i * 38, 340);
-        const y = i === 8 ? 18 + Math.sin(t * .7) * 1.5 : 15 + (i % 4) * 12 + Math.sin(t * .7 + i) * 1.5;
-        shape.forEach((row, j) => text(x, y + j, i % 2 ? mirror(row.padEnd(w)) : row, fishColors[i % fishColors.length]));
-      }
-      for (let i = 0; i < 4; i++) drawFish(i);
       for (let i = 0; i < 24; i++) {
         const root = 5 + i * 12, h = 8 + Math.floor(hash(i + 90) * 15);
         for (let j = 0; j < h; j++) {
@@ -100,12 +131,46 @@
         }
       }
       for (const [x, color] of [[64,203],[143,209],[254,141]]) {
-        sprite(x, 65, ['   \\ | /', '    \\|/', '  ---|---', '   / | \\', '     |', '    / \\'], color);
+        sprite(x, 63, ['   \\  |  /', '    \\ | /', '  \\  \\|/  /', '   \\  |  /', '    \\ | /', '     \\|/', '      |', '     / \\'], color);
       }
-      for (let i = 4; i < 9; i++) drawFish(i);
-      for (let i = 0; i < 55; i++) put(5 + hash(i + 520) * 290 + Math.sin(t + i), 8 + mod(hash(i + 521) * 64 - t * (2 + i % 3), 64), i % 4 ? '.' : 'o', water[3]);
+      // Larger silhouettes swim on separate paths so both are visible as the scene starts.
+      const shark = [
+        '                    /\\',
+        '   /\\_____________/  \\___________',
+        '  <       ___      )))        o    \\_',
+        '   \\/\\__/   \\___________       ____/',
+        '            \\____/       \\_____/',
+      ];
+      const puffer = [
+        '       \\  |  /',
+        '      .-^^^^^-.',
+        '   - /  o  .   \\ -',
+        '    |  .    .   |><',
+        '   - \\   .     / -',
+        '      `-vvvvv-\'',
+        '       /  |  \\',
+      ];
+      function foregroundFish(x, y, shape, color) {
+        const width = Math.max(...shape.map(row => row.length));
+        for (let row = 0; row < shape.length; row++) {
+          for (let col = 0; col < width; col++) put(x + col, y + row, ' ', 0);
+        }
+        sprite(x, y, shape, color);
+      }
+      const widthOf = shape => Math.max(...shape.map(row => row.length));
+      const placements = aquariumLayout({ left: 0, right: WIDTH, time: t, classic: false,
+        fishWidth: Math.max(...fish.map(widthOf)), sharkWidth: widthOf(shark), pufferWidth: widthOf(puffer) });
+      for (const placement of placements) {
+        const { kind, x, y, index, direction } = placement;
+        let shape = kind === 'fish' ? animateFishTail(fish[index % fish.length], t) : kind === 'shark' ? shark : puffer;
+        if (kind === 'fish' && direction < 0) {
+          const width = widthOf(shape);
+          shape = shape.map(row => mirror(row.padEnd(width)));
+        }
+        foregroundFish(x, y, shape, kind === 'shark' ? 250 : fishColors[index % fishColors.length]);
+      }
       text(4, 5, '[ AQUARIUM ]', water[3]);
-    } else if (scene === 'space') {
+    } else if (scene === 'space' || scene === 'earth-night') {
       stars(260, 1, 82);
       const cx = 150, cy = 43, rx = 72, ry = 36, land = window.EARTH_LAND_MASK;
       for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) {
@@ -117,15 +182,24 @@
         const row = Math.min(89, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 90)));
         const isLand = land && land[row][col] === '1';
         const daylight = nx * .7 + z * .7 > .05;
-        const cloud = Math.sin(longitude * 11 + latitude * 18 + t * .08) + Math.sin(longitude * 24 - latitude * 9) > 1.66;
         const polar = Math.abs(latitude) > 1.35;
-        const color = polar || cloud ? (daylight ? 255 : 244) : isLand ? (daylight ? 114 : 28) : (daylight ? 75 : 24);
-        put(cx + x, cy + y, d > .975 ? '.' : cloud ? '~' : isLand ? (daylight ? '%' : ':') : (daylight ? '+' : '.'), color);
+        const ice = polar && isLand;
+        if (scene === 'earth-night') {
+          const lights = window.EARTH_NIGHT_LIGHTS;
+          const lightRow = Math.min(359, Math.max(0, Math.floor((PI / 2 - latitude) / PI * 360)));
+          const lightCol = Math.min(719, Math.floor(mod(longitude + PI, 2 * PI) / (2 * PI) * 720));
+          const brightness = lights ? Number(lights[lightRow][lightCol]) : 0;
+          put(cx + x, cy + y, brightness ? (brightness > 3 ? '*' : '+') : isLand ? ':' : '.',
+            brightness ? (brightness > 3 ? 230 : 178) : ice ? 250 : isLand ? 60 : 24);
+        } else {
+          const color = ice ? 255 : isLand ? (daylight ? 114 : 28) : (daylight ? 75 : 24);
+          put(cx + x, cy + y, ice ? '#' : isLand ? (daylight ? '%' : ':') : '+', color);
+        }
       }
       moon(258, 19, 10, 5);
       const satellite = mod(t * 8, 350) - 25;
       sprite(satellite, 11, ['  |', '-[o]-', '  |'], 230);
-      text(5, 3, 'EARTH / ROTATING GLOBE', 250);
+      text(5, 3, scene === 'earth-night' ? 'EARTH AT NIGHT / NASA 2016' : 'EARTH / ROTATING GLOBE', 250);
     } else if (scene === 'solar') {
       stars(250, 1, 83);
       const cx = 145, cy = 42;
@@ -278,5 +352,5 @@
       return out;
     }).join('\n') + '\x1b[0m';
   }
-  window.DetailedScenes = { render };
+  window.DetailedScenes = { render, aquariumLayout, animateFishTail };
 })();

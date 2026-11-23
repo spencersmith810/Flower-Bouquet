@@ -28,9 +28,32 @@ h1 em { color: var(--accent); font-style: normal; font-weight: 700; }
 .message-row { display: grid; gap: 8px; min-width: min(100%, 265px); }
 .message-row label { color: var(--muted); font-size: .7rem; letter-spacing: .12em; }
 input, select { border: 1px solid var(--line); border-radius: 2px; color: var(--ink); background: #0e1511; font: inherit; }
-select { padding: 8px; font-size: 12px; }
+select {
+  appearance: none;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 9px 38px 9px 12px;
+  border-color: #405347;
+  border-radius: 4px;
+  color: var(--ink);
+  background-color: #131d17;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238ee28e' stroke-width='1.6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+select:hover { border-color: var(--accent); background-color: #1a291e; }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+select option { color: var(--ink); background: #131d17; }
 .message-row input { width: 100%; padding: 11px 12px; }
 input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(142,226,142,.15); }
+.scene-picker { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-bottom: 14px; }
+.scene-field { display: grid; gap: 8px; flex: 1 1 280px; max-width: 440px; }
+.scene-field label { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .1em; }
+.scene-field select { width: 100%; min-height: 46px; font-size: 14px; }
+.detail-field { flex: 0 1 180px; }
 .terminal-window { overflow: hidden; border: 1px solid #354239; border-radius: 3px; background: #090c0a; box-shadow: 0 18px 50px rgba(0,0,0,.45); }
 .terminal-bar { display: flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px; border-bottom: 1px solid #c8c8c8; color: #555b62; background: #f1f1f1; font: 700 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .dot { width: 13px; height: 13px; border-radius: 50%; }.dot.red { background: #ff5f57; }.dot.yellow { background: #febc2e; }.dot.green { background: #28c840; }
@@ -63,4 +86,6 @@ kbd { border: 1px solid #405047; border-bottom-width: 2px; border-radius: 2px; p
   #screen { padding: 18px 8px; }
   .terminal-title { font-size: 10px; }
   .dot { width: 10px; height: 10px; }
+  .scene-field { flex: 1 1 100%; max-width: none; }
+  .scene-field select { font-size: 16px; }
 }

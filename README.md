@@ -2,9 +2,11 @@
 
 ## Browser version
 
-Select a scene to explore the flower bouquet, seasonal landscape, snow globe, aquarium, Earth, solar system, ocean, mountain rainstorm, New York fireworks, or mountain night sky. The tree offers four seasons; the globe can be shaken; the aquarium, ocean, and fireworks have color or sky controls. Edit the message, adjust the speed, and use **Share Scene** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them.
+Select a scene to explore the flower bouquet, aquarium, Earth from space, Earth at night, solar system, or New York fireworks. The aquarium and fireworks have color controls. Edit the message, adjust the speed, and use **Share Scene** to create a link with those settings. The message and settings are stored in the URL, so anyone with the link can read them. Links to removed scenes open the flower bouquet.
 
 Earth's land mask is derived from the public-domain [Natural Earth 1:110m land dataset](https://www.naturalearthdata.com/downloads/110m-physical-vectors/). It is sampled at two-degree resolution to remain compact in the ASCII renderer. The solar-system orbits are stylized for readability and are not to scale.
+
+Earth at night uses NASA's [2016 Black Marble grayscale composite](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/), resampled to a half-degree grid. It shows historical satellite-observed light, not live conditions; the ASCII globe cannot resolve every city or separate nearby lights.
 
 The bouquet uses the same Python renderer as the terminal version. Choose a theme, roses, sunflowers, or a mixed bouquet, and select Classic or Detailed character rendering. The other scenes run directly in JavaScript using a character grid.
 

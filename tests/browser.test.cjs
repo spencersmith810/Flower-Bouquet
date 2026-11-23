@@ -19,7 +19,7 @@ function setup(search = '') {
     };
   }
   elements['.terminal-title'] = { textContent: '' };
-  const groups = ['bouquet', 'tree', 'snowglobe', 'aquarium', 'ocean', 'fireworks']
+  const groups = ['bouquet', 'aquarium', 'fireworks']
     .map(name => ({ dataset: { for: name }, hidden: false }));
   let worker;
   const timers = [];
@@ -48,11 +48,13 @@ function setup(search = '') {
   const scenesSource = fs.readFileSync(path.join(__dirname, '..', 'scenes.js'), 'utf8');
   const detailedSource = fs.readFileSync(path.join(__dirname, '..', 'detailed-scenes.js'), 'utf8');
   const earthSource = fs.readFileSync(path.join(__dirname, '..', 'earth-mask.js'), 'utf8');
+  const nightSource = fs.readFileSync(path.join(__dirname, '..', 'earth-night-lights.js'), 'utf8');
   vm.runInNewContext(earthSource, sandbox);
+  vm.runInNewContext(nightSource, sandbox);
   vm.runInNewContext(detailedSource, sandbox);
   vm.runInNewContext(scenesSource, sandbox);
   vm.runInNewContext(source, sandbox);
-  return { elements, worker, timers, groups, scenes: window.AsciiScenes, land: window.EARTH_LAND_MASK };
+  return { elements, worker, timers, groups, scenes: window.AsciiScenes, detailed: window.DetailedScenes, land: window.EARTH_LAND_MASK };
 }
 
 test('share link preserves settings and escapes messages when displayed', async () => {
@@ -115,7 +117,7 @@ test('choosing a flower style and detail level reaches the renderer', () => {
 
 test('all scenes produce distinct animated character grids', () => {
   const { scenes } = setup();
-  const names = ['tree', 'snowglobe', 'aquarium', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky'];
+  const names = ['aquarium', 'space', 'earth-night', 'solar', 'fireworks'];
   const frames = names.map(scene => scenes.render(scene, { time: 2, message: 'Hello' }));
   assert.equal(new Set(frames).size, names.length);
   for (let i = 0; i < frames.length; i++) {
@@ -132,7 +134,7 @@ test('all scenes produce distinct animated character grids', () => {
 
 test('every scene offers a distinct classic and fine-detail rendering', async () => {
   const { scenes, elements } = setup('?scene=aquarium&detail=classic');
-  for (const scene of ['tree', 'snowglobe', 'aquarium', 'space', 'solar', 'ocean', 'rain', 'fireworks', 'nightsky']) {
+  for (const scene of ['aquarium', 'space', 'earth-night', 'solar', 'fireworks']) {
     const classic = scenes.render(scene, { time: 2, detail: 'classic' });
     const detailed = scenes.render(scene, { time: 2, detail: 'detailed' });
     assert.notEqual(classic, detailed, scene);
@@ -146,12 +148,6 @@ test('every scene offers a distinct classic and fine-detail rendering', async ()
   elements['#detail'].callbacks.change();
   await elements['#share'].click();
   assert.equal(new URL(elements['#share-link'].value).searchParams.get('detail'), 'detailed');
-});
-
-test('fine-detail globe shake changes snow at the same moment', () => {
-  const { scenes } = setup();
-  assert.notEqual(scenes.render('snowglobe', { time: 10, shakeTime: 9 }),
-    scenes.render('snowglobe', { time: 10 }));
 });
 
 test('Earth rotates mapped land and the solar system identifies its planets', () => {
@@ -171,6 +167,19 @@ test('Earth rotates mapped land and the solar system identifies its planets', ()
   }
 });
 
+test('Earth at night renders satellite lights and supports shared links', async () => {
+  const { scenes, elements } = setup('?scene=earth-night');
+  assert.equal(elements['#scene'].value, 'earth-night');
+  for (const detail of ['classic', 'detailed']) {
+    const frame = scenes.render('earth-night', { time: 0, detail });
+    assert.match(frame, /EARTH AT NIGHT/);
+    assert.match(frame, /\x1b\[38;5;(178|230)m/);
+    assert.notEqual(frame, scenes.render('earth-night', { time: 8, detail }));
+  }
+  await elements['#share'].click();
+  assert.equal(new URL(elements['#share-link'].value).searchParams.get('scene'), 'earth-night');
+});
+
 test('aquarium uses a larger grid with moving, detailed fish', () => {
   const { scenes } = setup();
   const frame = scenes.render('aquarium', { time: 3, waterColor: 'teal', fishColor: 'coral' });
@@ -179,20 +188,56 @@ test('aquarium uses a larger grid with moving, detailed fish', () => {
   assert.equal(lines.length, 90);
   assert.equal(lines[0].length, 300);
   assert.match(plain, /AQUARIUM/);
-  assert.match(plain, /\(+o+\)+|[()<>]+o+[()<>]+/);
+  assert.match(plain, /o\s+\)>/);
   assert.notEqual(frame, scenes.render('aquarium', { time: 4, waterColor: 'teal', fishColor: 'coral' }));
 });
 
+test('shark and pufferfish are visible in both aquarium detail modes', () => {
+  const { scenes } = setup();
+  for (const detail of ['classic', 'detailed']) {
+    const frame = scenes.render('aquarium', { time: 0, detail }).replace(/\x1b\[[0-9;]*[mH]/g, '');
+    assert.match(frame, /\^\^/); // Pufferfish spines
+    assert.match(frame, /\){3}/); // Shark gills
+  }
+});
+
+test('aquarium fish stay in separate lanes and wrap outside the tank', () => {
+  const { detailed } = setup();
+  for (const config of [
+    { left: 0, right: 300, classic: false, fishWidth: 29, sharkWidth: 40, pufferWidth: 20 },
+    { left: 4, right: 159, classic: true, fishWidth: 20, sharkWidth: 32, pufferWidth: 16 },
+  ]) {
+    for (let time = 0; time < 300; time += .25) {
+      const fish = detailed.aquariumLayout({ ...config, time });
+      for (let i = 0; i < fish.length; i++) for (let j = i + 1; j < fish.length; j++) {
+        const a = fish[i], b = fish[j];
+        const visibleA = a.x < config.right && a.x + a.width > config.left;
+        const visibleB = b.x < config.right && b.x + b.width > config.left;
+        if (!visibleA || !visibleB) continue;
+        const overlaps = a.x < b.x + b.width && b.x < a.x + a.width &&
+          a.y < b.y + b.height && b.y < a.y + a.height;
+        assert.equal(overlaps, false, `${a.kind} and ${b.kind} overlap at ${time}`);
+      }
+    }
+    const wrapAt = (config.right - config.left - 25) / 2.4;
+    const before = detailed.aquariumLayout({ ...config, time: wrapAt - .01 })[0];
+    const after = detailed.aquariumLayout({ ...config, time: wrapAt + .01 })[0];
+    assert.ok(before.x >= config.right - 1);
+    assert.ok(after.x + after.width <= config.left + 1);
+  }
+  assert.notDeepEqual(detailed.animateFishTail(['<  >'], 0), detailed.animateFishTail(['<  >'], .2));
+});
+
 test('scene choice and options round-trip through sharing', async () => {
-  const { elements, groups } = setup('?scene=tree&season=winter&fish=cool&fireworks=warm');
-  assert.equal(elements['#scene'].value, 'tree');
-  assert.equal(elements['#season'].value, 'winter');
-  assert.equal(groups.find(group => group.dataset.for === 'tree').hidden, false);
+  const { elements, groups } = setup('?scene=aquarium&water=teal&fish=cool&fireworks=warm');
+  assert.equal(elements['#scene'].value, 'aquarium');
+  assert.equal(elements['#water-color'].value, 'teal');
+  assert.equal(groups.find(group => group.dataset.for === 'aquarium').hidden, false);
   assert.equal(groups.find(group => group.dataset.for === 'bouquet').hidden, true);
   await elements['#share'].click();
   const url = new URL(elements['#share-link'].value);
-  assert.equal(url.searchParams.get('scene'), 'tree');
-  assert.equal(url.searchParams.get('season'), 'winter');
+  assert.equal(url.searchParams.get('scene'), 'aquarium');
+  assert.equal(url.searchParams.get('water'), 'teal');
   assert.equal(url.searchParams.get('fish'), 'cool');
   assert.equal(url.searchParams.get('fireworks'), 'warm');
 });
@@ -206,14 +251,8 @@ test('solar system can be opened and shared directly', async () => {
 
 test('scene controls change the generated artwork', () => {
   const { scenes } = setup();
-  assert.notEqual(scenes.render('tree', { time: 2, season: 'spring' }),
-                  scenes.render('tree', { time: 2, season: 'winter' }));
-  assert.notEqual(scenes.render('snowglobe', { time: 2, shakeTime: 1 }),
-                  scenes.render('snowglobe', { time: 2 }));
   assert.notEqual(scenes.render('aquarium', { time: 2, waterColor: 'teal', fishColor: 'coral' }),
                   scenes.render('aquarium', { time: 2, waterColor: 'purple', fishColor: 'cool' }));
-  assert.notEqual(scenes.render('ocean', { time: 2, oceanTime: 'sunset' }),
-                  scenes.render('ocean', { time: 2, oceanTime: 'night' }));
   assert.notEqual(scenes.render('fireworks', { time: 2, fireworkColor: 'warm' }),
                   scenes.render('fireworks', { time: 2, fireworkColor: 'cool' }));
 });
@@ -226,10 +265,8 @@ test('New York fireworks default to a rainbow over the skyline', () => {
   assert.ok([196, 208, 226, 46, 45, 141, 213].filter(color => colors.has(color)).length >= 4);
 });
 
-test('snow globe shake resumes a paused animation', () => {
-  const { elements } = setup('?scene=snowglobe');
-  elements['#pause'].click();
-  assert.equal(elements['#pause'].textContent, 'RESUME');
-  elements['#shake'].click();
-  assert.equal(elements['#pause'].textContent, 'PAUSE');
+test('links to removed scenes fall back to the bouquet', () => {
+  for (const scene of ['tree', 'snowglobe', 'ocean', 'rain', 'nightsky']) {
+    assert.equal(setup(`?scene=${scene}`).elements['#scene'].value, 'bouquet');
+  }
 });

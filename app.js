@@ -4,10 +4,8 @@ const pauseButton = document.querySelector('#pause');
 const status = document.querySelector('#render-status');
 const themeSelect = document.querySelector('#theme');
 const sceneSelect = document.querySelector('#scene');
-const seasonSelect = document.querySelector('#season');
 const waterSelect = document.querySelector('#water-color');
 const fishSelect = document.querySelector('#fish-color');
-const oceanSelect = document.querySelector('#ocean-time');
 const fireworkSelect = document.querySelector('#firework-color');
 const flowerSelect = document.querySelector('#flowers');
 const detailSelect = document.querySelector('#detail');
@@ -20,9 +18,8 @@ const worker = new Worker('renderer-worker.js?v=20261119i', { type: 'module' });
 const themeNames = ['Original', 'Romantic', 'Sunset', 'Lavender Garden', 'Spring', 'Midnight', 'Monochrome'];
 const flowerStyles = ['original', 'roses', 'sunflowers', 'mixed'];
 const detailLevels = ['classic', 'detailed'];
-const sceneNames = { bouquet: 'Flower bouquet', tree: 'Seasonal tree', snowglobe: 'Snow globe',
-  aquarium: 'Aquarium', space: 'Earth from space', solar: 'Solar system', ocean: 'Ocean', rain: 'Mountain rainstorm',
-  fireworks: 'New York fireworks', nightsky: 'Mountain night sky' };
+const sceneNames = { bouquet: 'Flower bouquet', aquarium: 'Aquarium', space: 'Earth from space',
+  'earth-night': 'Earth at night', solar: 'Solar system', fireworks: 'New York fireworks' };
 const params = new URLSearchParams(window.location.search);
 function option(key, choices, fallback) {
   const value = params.get(key);
@@ -42,10 +39,8 @@ const state = {
   flowerStyle: flowerStyles.includes(params.get('flowers')) ? params.get('flowers') : 'original',
   detail: detailLevels.includes(params.get('detail')) ? params.get('detail') : 'detailed',
   scene: option('scene', Object.keys(sceneNames), 'bouquet'),
-  season: option('season', ['spring', 'summer', 'autumn', 'winter'], 'spring'),
   waterColor: option('water', ['blue', 'teal', 'purple'], 'blue'),
   fishColor: option('fish', ['mixed', 'coral', 'cool'], 'mixed'),
-  oceanTime: option('sky', ['sunset', 'night'], 'sunset'),
   fireworkColor: option('fireworks', ['rainbow', 'warm', 'cool'], 'rainbow'),
 };
 if (params.has('message')) messageInput.value = params.get('message').slice(0, 42);
@@ -53,10 +48,8 @@ themeSelect.selectedIndex = state.theme;
 flowerSelect.value = state.flowerStyle;
 detailSelect.value = state.detail;
 sceneSelect.value = state.scene;
-seasonSelect.value = state.season;
 waterSelect.value = state.waterColor;
 fishSelect.value = state.fishColor;
-oceanSelect.value = state.oceanTime;
 fireworkSelect.value = state.fireworkColor;
 speedValue.textContent = state.speed.toFixed(1);
 pauseButton.textContent = state.paused ? 'RESUME' : 'PAUSE';
@@ -70,7 +63,6 @@ let timer = null;
 let frameStarted = 0;
 let sceneTime = 0;
 let lastSceneTimestamp = null;
-let shakeTime = -100;
 
 // Python emits ANSI 256-color codes; translate them into browser colors.
 function terminalColor(code) {
@@ -123,7 +115,7 @@ function scheduleFrame(delay = 0) {
       lastSceneTimestamp = frameStarted;
       if (!state.paused) sceneTime += dt * state.speed / 0.6;
       displayFrame(window.AsciiScenes.render(state.scene, { ...state, time: sceneTime,
-        message: messageInput.value, shakeTime }));
+        message: messageInput.value }));
       inFlight = false;
       scheduleFrame(state.paused ? 0 : Math.max(0, 1000 / 24 - (performance.now() - frameStarted)));
     }
@@ -202,16 +194,9 @@ sceneSelect.addEventListener('change', () => {
   if (autoFit) fitScreen();
   redraw();
 });
-seasonSelect.addEventListener('change', () => { state.season = seasonSelect.value; redraw(); });
 waterSelect.addEventListener('change', () => { state.waterColor = waterSelect.value; redraw(); });
 fishSelect.addEventListener('change', () => { state.fishColor = fishSelect.value; redraw(); });
-oceanSelect.addEventListener('change', () => { state.oceanTime = oceanSelect.value; redraw(); });
 fireworkSelect.addEventListener('change', () => { state.fireworkColor = fireworkSelect.value; redraw(); });
-document.querySelector('#shake').addEventListener('click', () => {
-  if (state.paused) pauseButton.click();
-  shakeTime = sceneTime;
-  redraw();
-});
 flowerSelect.addEventListener('change', () => { state.flowerStyle = flowerSelect.value; redraw(); });
 detailSelect.addEventListener('change', () => {
   state.detail = detailSelect.value;
@@ -259,10 +244,8 @@ document.querySelector('#share').addEventListener('click', async () => {
   url.searchParams.set('flowers', state.flowerStyle);
   url.searchParams.set('detail', state.detail);
   url.searchParams.set('scene', state.scene);
-  url.searchParams.set('season', state.season);
   url.searchParams.set('water', state.waterColor);
   url.searchParams.set('fish', state.fishColor);
-  url.searchParams.set('sky', state.oceanTime);
   url.searchParams.set('fireworks', state.fireworkColor);
   shareLink.value = url.toString();
   shareLabel.hidden = false;

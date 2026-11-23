@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A collection of animated ASCII scenes for your browser.">
   <title>ASCII Scenes</title>
-  <link rel="stylesheet" href="styles.css?v=20261119i">
+  <link rel="stylesheet" href="styles.css?v=20261123d">
 </head>
 <body>
   <main class="shell">
@@ -19,6 +19,22 @@
       </div>
     </section>
 
+    <section class="scene-picker" aria-label="Scene selection">
+      <div class="scene-field">
+        <label for="scene">CHOOSE A SCENE</label>
+        <select id="scene" aria-label="Choose a scene">
+          <option value="bouquet">Flower bouquet</option><option value="aquarium">Aquarium</option>
+          <option value="space">Earth from space</option><option value="earth-night">Earth at night</option>
+          <option value="solar">Solar system</option><option value="fireworks">New York fireworks</option>
+        </select>
+      </div>
+      <div class="scene-field detail-field">
+        <label for="detail">DETAIL</label>
+        <select id="detail" aria-label="Rendering detail">
+          <option value="classic">Classic</option><option value="detailed" selected>Fine detail</option>
+        </select>
+      </div>
+    </section>
     <section class="terminal-window" aria-label="Animated ASCII scene terminal">
       <div class="terminal-bar"><span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span><span class="terminal-title">Flower Bouquet — Python bouquet3d.py — 300×90</span></div>
       <p id="render-status" role="status">Loading the Python renderer…</p>
@@ -28,14 +44,6 @@
     <section class="controls" aria-label="Bouquet controls">
       <div class="theme-list" id="themes"></div>
       <div class="control-row">
-        <label for="scene">SCENE</label>
-        <select id="scene" aria-label="Choose a scene">
-          <option value="bouquet">Flower bouquet</option><option value="tree">Seasonal tree</option>
-          <option value="snowglobe">Snow globe</option><option value="aquarium">Aquarium</option>
-          <option value="space">Earth from space</option><option value="solar">Solar system</option><option value="ocean">Ocean</option>
-          <option value="rain">Mountain rainstorm</option><option value="fireworks">New York fireworks</option>
-          <option value="nightsky">Night sky</option>
-        </select>
         <button id="pause" type="button" aria-pressed="false">PAUSE</button>
         <button id="slower" type="button" aria-label="Decrease rotation speed">− SPEED</button>
         <output id="speed-value" aria-live="polite">0.6</output>
@@ -55,20 +63,9 @@
         </select>
         <button id="hearts" type="button">ADD HEARTS</button>
         </span>
-        <label for="detail">DETAIL</label>
-        <select id="detail" aria-label="Rendering detail">
-          <option value="classic">Classic</option><option value="detailed" selected>Fine detail</option>
-        </select>
-        <span class="option-group" data-for="tree" hidden><label for="season">SEASON</label>
-          <select id="season"><option value="spring">Spring</option><option value="summer">Summer</option><option value="autumn">Autumn</option><option value="winter">Winter</option></select>
-        </span>
-        <span class="option-group" data-for="snowglobe" hidden><button id="shake" type="button">SHAKE GLOBE</button></span>
         <span class="option-group" data-for="aquarium" hidden><label for="water-color">WATER</label>
           <select id="water-color"><option value="blue">Blue</option><option value="teal">Teal</option><option value="purple">Purple</option></select>
           <label for="fish-color">FISH</label><select id="fish-color"><option value="mixed">Mixed</option><option value="coral">Coral</option><option value="cool">Cool</option></select>
-        </span>
-        <span class="option-group" data-for="ocean" hidden><label for="ocean-time">SKY</label>
-          <select id="ocean-time"><option value="sunset">Sunset</option><option value="night">Moonlit</option></select>
         </span>
         <span class="option-group" data-for="fireworks" hidden><label for="firework-color">COLORS</label>
           <select id="firework-color"><option value="rainbow">Rainbow</option><option value="warm">Warm</option><option value="cool">Cool</option></select>
@@ -85,8 +82,9 @@
     </section>
   </main>
   <script src="earth-mask.js?v=20261119i"></script>
-  <script src="detailed-scenes.js?v=20261119i"></script>
-  <script src="scenes.js?v=20261119i"></script>
-  <script src="app.js?v=20261119i"></script>
+  <script src="earth-night-lights.js?v=20261123"></script>
+  <script src="detailed-scenes.js?v=20261123e"></script>
+  <script src="scenes.js?v=20261123e"></script>
+  <script src="app.js?v=20261123b"></script>
 </body>
 </html>
